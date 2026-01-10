@@ -21,15 +21,21 @@ const App: React.FC = () => {
   const loadRates = async () => {
     setLoading(true);
     try {
+      // Pequeno delay para feedback visual no Vercel
+      await new Promise(r => setTimeout(r, 400));
       const data = await fetchExchangeRates();
       const now = new Date().toLocaleTimeString('pt-PT');
-      setRates(data.map((d: any) => ({ 
+      
+      // Filtramos duplicados e garantimos que os dados são válidos
+      const validRates = data.filter(r => r && r.bank && typeof r.rate === 'number');
+      
+      setRates(validRates.map((d: any) => ({ 
         ...d,
         lastUpdate: d.lastUpdate || now 
       })));
       setLastSync(now);
     } catch (err) {
-      console.error("Falha ao carregar câmbios:", err);
+      console.error("Erro ao sincronizar com bancos:", err);
     } finally {
       setLoading(false);
     }
@@ -37,8 +43,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     loadRates();
-    // Auto-refresh a cada 15 minutos para extrema precisão
-    const interval = setInterval(loadRates, 15 * 60 * 1000);
+    // Refresh automático a cada 20 minutos
+    const interval = setInterval(loadRates, 20 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -51,11 +57,11 @@ const App: React.FC = () => {
           <section className="space-y-6 animate-fadeIn">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
               <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Câmbio USD/AOA Tempo Real</h2>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Câmbio USD/AOA em Directo</h2>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`w-2 h-2 rounded-full ${loading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`}></span>
                   <p className="text-[10px] text-slate-500 font-black flex items-center gap-1 uppercase tracking-widest">
-                    <Clock className="w-3 h-3" /> Última Sincronização: {lastSync || 'Iniciando...'}
+                    <Clock className="w-3 h-3" /> Última Verificação: {lastSync || 'Sincronizando...'}
                   </p>
                 </div>
               </div>
@@ -65,7 +71,7 @@ const App: React.FC = () => {
                 disabled={loading}
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                <span className="text-[10px] font-black uppercase tracking-wider">{loading ? 'A pesquisar sites oficiais...' : 'Forçar Atualização Instantânea'}</span>
+                <span className="text-[10px] font-black uppercase tracking-wider">{loading ? 'A aceder aos sites dos bancos...' : 'Forçar Atualização Instantânea'}</span>
               </button>
             </div>
 
