@@ -11,10 +11,10 @@ const Header: React.FC = () => {
             <Globe className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="font-extrabold text-xl leading-tight tracking-tight text-slate-900 flex items-center gap-2">
-              Import Angola <span className="bg-indigo-50 text-indigo-600 text-[10px] px-2 py-0.5 rounded-lg border border-indigo-100">PRO</span>
+            <h1 className="font-extrabold text-2xl leading-none tracking-tighter text-slate-900">
+              TECHIMPORT
             </h1>
-            <p className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold">Inteligência Logística & Vendas</p>
+            <p className="text-[12px] text-indigo-600 uppercase tracking-[0.3em] font-black -mt-0.5">ANGOLA</p>
           </div>
         </div>
         

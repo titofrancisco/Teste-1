@@ -45,7 +45,6 @@ const ReportsSystem: React.FC = () => {
     return () => window.removeEventListener('storage', load);
   }, []);
 
-  // Helpers de Data
   const parseDate = (dStr: string) => {
     const [d, m, y] = dStr.split('/').map(Number);
     return new Date(y, m - 1, d);
@@ -92,23 +91,7 @@ const ReportsSystem: React.FC = () => {
     const stockValue = inventory.filter(i => !i.isSold).reduce((acc, curr) => acc + curr.totalCost, 0);
     const itemsAvailable = inventory.filter(i => !i.isSold).length;
 
-    const contractDist = {
-      [ContractType.ORDER]: finalInvoices.filter(i => i.contractType === ContractType.ORDER).length,
-      [ContractType.TWO_INSTALLMENTS]: finalInvoices.filter(i => i.contractType === ContractType.TWO_INSTALLMENTS).length,
-      [ContractType.THREE_INSTALLMENTS]: finalInvoices.filter(i => i.contractType === ContractType.THREE_INSTALLMENTS).length,
-    };
-
-    const brandSales: Record<string, number> = {};
-    finalInvoices.forEach(inv => {
-      const brand = inv.productDetails?.brand || 'Desconhecido';
-      brandSales[brand] = (brandSales[brand] || 0) + 1;
-    });
-
-    const topBrands = Object.entries(brandSales)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-
-    return { totalRevenue, totalProfit, stockValue, itemsAvailable, contractDist, topBrands };
+    return { totalRevenue, totalProfit, stockValue, itemsAvailable };
   }, [invoices, inventory]);
 
   const formatAOA = (val: number) => {
@@ -117,19 +100,16 @@ const ReportsSystem: React.FC = () => {
 
   const handleExportCSV = () => {
     if (filteredSales.length === 0) {
-      alert("Não há dados para exportar no período selecionado.");
+      alert("Não há dados para exportar.");
       return;
     }
 
-    const headers = ["Nº Factura", "Data Factura", "Vencimento Final", "Cliente", "BI", "Artigo", "Modalidade", "Valor (AOA)"];
+    const headers = ["Nº Factura", "Data", "Cliente", "Artigo", "Valor (AOA)"];
     const rows = filteredSales.map(inv => [
       inv.invoiceNumber,
       inv.date,
-      getFinalDueDate(inv.date, inv.contractType),
       inv.customerName,
-      inv.idNumber,
       `${inv.productDetails?.brand} ${inv.productDetails?.model}`,
-      inv.contractType,
       inv.adjustedPrice
     ]);
 
@@ -137,11 +117,9 @@ const ReportsSystem: React.FC = () => {
     const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `vendas_export_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
+    link.href = url;
+    link.download = `vendas_techimport_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
-    document.body.removeChild(link);
   };
 
   const exportBackup = () => {
@@ -153,7 +131,7 @@ const ReportsSystem: React.FC = () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `backup_import_angola_${Date.now()}.json`;
+    link.download = `backup_techimport_${Date.now()}.json`;
     link.click();
   };
 
@@ -169,7 +147,7 @@ const ReportsSystem: React.FC = () => {
           localStorage.setItem(BILL_KEY, JSON.stringify(data.invoices));
           window.location.reload();
         }
-      } catch (err) { alert('Erro ao importar backup.'); }
+      } catch (err) { alert('Erro ao importar.'); }
     };
     reader.readAsText(file);
   };
@@ -179,7 +157,7 @@ const ReportsSystem: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:mb-8">
         <div>
           <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Painel Executivo</h2>
-          <p className="text-slate-500 font-medium">Análise de Performance e Gestão.</p>
+          <p className="text-indigo-600 font-black text-[10px] uppercase tracking-widest">Tech Import Angola - Business Intelligence</p>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
           <button onClick={() => window.print()} className="flex items-center gap-2 px-5 py-3 bg-slate-100 text-slate-900 rounded-2xl font-black text-[10px] uppercase"><Printer className="w-4 h-4" /> PDF</button>
@@ -214,92 +192,39 @@ const ReportsSystem: React.FC = () => {
             <Filter className="w-6 h-6 text-indigo-600" />
             <div>
               <h3 className="font-black text-sm uppercase">Filtros de Vendas</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Exportação e Consulta por Período</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Tech Import Angola - Exportação</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-black uppercase text-slate-400">Filtrar por</label>
-              <select 
-                value={filterType} 
-                onChange={(e) => setFilterType(e.target.value as any)}
-                className="p-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold outline-none"
-              >
-                <option value="invoiceDate">Data da Factura</option>
-                <option value="dueDate">Data de Vencimento</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-black uppercase text-slate-400">Início</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="p-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-black uppercase text-slate-400">Fim</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="p-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold" />
-            </div>
-            <div className="flex items-end self-end">
-              <button 
-                onClick={handleExportCSV}
-                className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all"
-              >
-                <FileSpreadsheet className="w-4 h-4" /> Exportar CSV
-              </button>
-            </div>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="p-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold" />
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="p-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold" />
+            <button onClick={handleExportCSV} className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all"><FileSpreadsheet className="w-4 h-4" /> Exportar CSV</button>
           </div>
         </div>
 
         <div className="p-8 flex items-center gap-3 border-b">
            <ShoppingBag className="w-6 h-6 text-rose-600" />
-           <h3 className="font-black text-sm uppercase">Histórico de Vendas ({filteredSales.length})</h3>
+           <h3 className="font-black text-sm uppercase tracking-widest">Histórico Global de Vendas ({filteredSales.length})</h3>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
-              <tr>
-                <th className="p-6">Factura</th>
-                <th className="p-6">Vencimento Final</th>
-                <th className="p-6">Cliente</th>
-                <th className="p-6">Artigo</th>
-                <th className="p-6 text-right">Valor Final</th>
-              </tr>
+              <tr><th className="p-6">Factura</th><th className="p-6">Cliente</th><th className="p-6">Artigo</th><th className="p-6 text-right">Valor Final</th></tr>
             </thead>
             <tbody className="divide-y">
               {filteredSales.map(inv => (
                 <tr key={inv.timestamp} className="hover:bg-slate-50 transition-colors">
-                  <td className="p-6">
-                    <div className="text-xs font-bold">#{inv.invoiceNumber}</div>
-                    <div className="text-[9px] text-slate-400">{inv.date}</div>
-                  </td>
-                  <td className="p-6">
-                    <div className="text-[10px] font-black text-indigo-600 flex items-center gap-1">
-                       <Clock className="w-3 h-3" /> {getFinalDueDate(inv.date, inv.contractType)}
-                    </div>
-                  </td>
+                  <td className="p-6"><div className="text-xs font-bold">#{inv.invoiceNumber}</div><div className="text-[9px] text-slate-400">{inv.date}</div></td>
                   <td className="p-6 font-black text-slate-900 text-sm uppercase">{inv.customerName}</td>
-                  <td className="p-6">
-                    <div className="text-[10px] font-bold uppercase">{inv.productDetails?.brand} {inv.productDetails?.model}</div>
-                    <div className="text-[9px] text-slate-400">{inv.contractType}</div>
-                  </td>
+                  <td className="p-6"><div className="text-[10px] font-bold uppercase">{inv.productDetails?.brand} {inv.productDetails?.model}</div></td>
                   <td className="p-6 text-right font-black text-emerald-600">{formatAOA(inv.adjustedPrice)}</td>
                 </tr>
               ))}
-              {filteredSales.length === 0 && (
-                <tr><td colSpan={5} className="p-20 text-center text-slate-300 font-bold uppercase text-xs tracking-widest">Nenhuma venda encontrada para o período selecionado</td></tr>
-              )}
             </tbody>
           </table>
         </div>
       </div>
-
-      <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          #reports-container, #reports-container * { visibility: visible !important; }
-          #reports-container { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; margin: 0 !important; }
-          .print\:hidden { display: none !important; }
-        }
-      `}</style>
     </div>
   );
 };

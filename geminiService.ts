@@ -1,43 +1,68 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
+// Configuração para Next.js/Vercel: Força a execução dinâmica e evita build estático
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function fetchExchangeRates() {
+  const serverTimestamp = new Date().toISOString();
+  const requestId = Math.random().toString(36).substring(2, 15);
+
+  console.log(`[TECH IMPORT LOG - ${serverTimestamp}] Iniciando busca de taxas de câmbio. RequestID: ${requestId}`);
+
   if (!process.env.API_KEY) {
-    console.error("ERRO CRÍTICO: API_KEY não configurada no ambiente (Vercel Environment Variables).");
+    console.error(`[TECH IMPORT ERROR - ${serverTimestamp}] API_KEY não encontrada nas variáveis de ambiente da Vercel.`);
     return getDefaultRates();
   }
 
-  const now = new Date();
-  const todayStr = now.toLocaleDateString('pt-PT', { timeZone: 'Africa/Luanda' });
-  const timeStr = now.toLocaleTimeString('pt-PT', { timeZone: 'Africa/Luanda' });
-  const salt = Math.random().toString(36).substring(7); // Força refresh da busca
+  const nowInLuanda = new Intl.DateTimeFormat('pt-PT', {
+    timeZone: 'Africa/Luanda',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  }).format(new Date());
 
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    // Usamos o gemini-3-flash-preview para menor latência em rede
-    const prompt = `DATA_REF: ${todayStr} ${timeStr} (REF_ID: ${salt}).
-    PESQUISA OBRIGATÓRIA: Vá aos sites oficiais do Banco BAI, BFA, BCI e Banco Atlântico.
-    TAREFA: Extraia a taxa de câmbio de VENDA (Sell Rate) de USD para AOA (Kwanza) válida para HOJE, ${todayStr}.
+    /**
+     * PROMPT DE ALTA PRECISÃO:
+     * 1. Inclui timestamp para quebrar cache do Gemini.
+     * 2. Instruções de User-Agent simulado para o Google Search.
+     * 3. Foco em taxas de VENDA (Sell Rate).
+     */
+    const prompt = `
+      CONTEXTO DE TEMPO REAL:
+      - SERVER_TIMESTAMP: ${serverTimestamp}
+      - CURRENT_LUANDA_TIME: ${nowInLuanda}
+      - REQUEST_ID: ${requestId}
+      
+      INSTRUÇÕES CRÍTICAS PARA GOOGLE SEARCH:
+      - Atue como um navegador desktop real (User-Agent atualizado).
+      - Não utilize resultados de cache de pesquisas anteriores.
+      - Acesse os sites oficiais dos bancos angolanos AGORA: BAI, BFA, BCI, Atlântico.
+      - Extraia a TAXA DE VENDA (Sell Rate) de USD para AOA válida para hoje.
+      
+      REFERÊNCIAS:
+      - BAI (https://www.bai.ao/pt/)
+      - BFA (https://www.bfa.ao/pt/particulares/cambio/)
+      - Atlântico (https://www.atlantico.ao/)
+      - BCI (https://www.bci.ao/)
+      
+      FORMATO DE RESPOSTA OBRIGATÓRIO (JSON APENAS):
+      [{"bank": "Nome", "rate": 000.00, "publishedAt": "Data/Hora no Site", "sourceUrl": "URL Direta"}]
+    `;
     
-    REGRAS DE EXTRAÇÃO:
-    1. Se o banco apresentar taxas diferentes para 'Compra' e 'Venda', use APENAS a taxa de 'VENDA'.
-    2. Ignore valores de datas passadas.
-    3. Retorne APENAS um JSON no formato:
-       [{"bank": "Nome", "rate": 000.00, "publishedAt": "Data do Site", "sourceUrl": "URL"}]
-    
-    URLS DE REFERÊNCIA:
-    - BAI: https://www.bai.ao/pt/
-    - BFA: https://www.bfa.ao/pt/particulares/cambio/
-    - Atlântico: https://www.atlantico.ao/
-    - BCI: https://www.bci.ao/`;
-    
+    console.log(`[TECH IMPORT LOG - ${serverTimestamp}] Chamando Gemini API (gemini-3-flash-preview)...`);
+
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
+        // Cache bypass via headers se suportado pelo SDK, caso contrário o prompt com ID resolve
         responseSchema: {
           type: Type.ARRAY,
           items: {
@@ -54,45 +79,45 @@ export async function fetchExchangeRates() {
       },
     });
 
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
+    console.log(`[TECH IMPORT LOG - ${serverTimestamp}] Resposta recebida. Grounding verificada: ${!!groundingMetadata}`);
+
     let text = response.text || "";
-    
-    // Limpeza rigorosa para garantir que apenas o JSON seja processado
     text = text.trim();
-    if (text.startsWith("```json")) {
-      text = text.replace(/^```json/, "").replace(/```$/, "");
-    } else if (text.startsWith("```")) {
-      text = text.replace(/^```/, "").replace(/```$/, "");
+    
+    // Sanitização de blocos de código Markdown
+    if (text.startsWith("```")) {
+      text = text.replace(/^```json/, "").replace(/^```/, "").replace(/```$/, "").trim();
     }
     
-    const jsonMatch = text.match(/\[.*\]/s);
-    let results = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+    const results = JSON.parse(text);
     
-    if (Array.isArray(results)) {
-      return results.map((r: any, index: number) => {
-        // Vincula URLs do grounding caso o JSON venha incompleto
-        const foundUrl = r.sourceUrl || (groundingChunks[index] as any)?.web?.uri || (groundingChunks[0] as any)?.web?.uri || "";
-        return { 
-          ...r, 
-          sourceUrl: foundUrl,
-          lastUpdate: timeStr
-        };
-      });
+    if (Array.isArray(results) && results.length > 0) {
+      console.log(`[TECH IMPORT SUCCESS - ${serverTimestamp}] ${results.length} bancos processados com sucesso.`);
+      
+      return results.map((r: any) => ({
+        ...r,
+        lastUpdate: new Date().toLocaleTimeString('pt-PT', { timeZone: 'Africa/Luanda' })
+      }));
     }
     
-    throw new Error("Formato de resposta inválido");
+    throw new Error("JSON retornado vazio ou em formato inválido.");
+
   } catch (error) {
-    console.warn("Gemini falhou ou API Key ausente. Usando valores de salvaguarda.");
+    console.error(`[TECH IMPORT FATAL - ${serverTimestamp}] Falha na sincronização:`, error);
+    // Em caso de erro, retornamos os valores padrão para não quebrar a UI, 
+    // mas os logs acima ajudarão a diagnosticar o bloqueio na Vercel.
     return getDefaultRates();
   }
 }
 
 function getDefaultRates() {
   const time = new Date().toLocaleTimeString('pt-PT', { timeZone: 'Africa/Luanda' });
+  console.warn(`[TECH IMPORT WARN] Utilizando taxas de salvaguarda (offline mode).`);
   return [
-    { bank: 'BAI', rate: 915.50, lastUpdate: time, publishedAt: 'Padrão (Offline)' },
-    { bank: 'BCI', rate: 918.20, lastUpdate: time, publishedAt: 'Padrão (Offline)' },
-    { bank: 'BFA', rate: 916.00, lastUpdate: time, publishedAt: 'Padrão (Offline)' },
-    { bank: 'Atlântico', rate: 917.40, lastUpdate: time, publishedAt: 'Padrão (Offline)' }
+    { bank: 'BAI', rate: 915.50, lastUpdate: time, publishedAt: 'Servidor Offline' },
+    { bank: 'BCI', rate: 918.20, lastUpdate: time, publishedAt: 'Servidor Offline' },
+    { bank: 'BFA', rate: 916.00, lastUpdate: time, publishedAt: 'Servidor Offline' },
+    { bank: 'Atlântico', rate: 917.40, lastUpdate: time, publishedAt: 'Servidor Offline' }
   ];
 }

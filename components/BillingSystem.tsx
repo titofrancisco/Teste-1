@@ -188,7 +188,6 @@ const BillingSystem: React.FC = () => {
       
       let wasFinal = inv.isFinal;
       if (wasFinal) {
-        // Garantir que o bem volta ao stock ativo (isSold: false)
         const currentInventory = JSON.parse(localStorage.getItem(INV_KEY) || '[]');
         const updatedInventory = currentInventory.map((p: InventoryItem) => 
           p.timestamp === inv.productTimestamp ? { ...p, isSold: false } : p
@@ -199,10 +198,7 @@ const BillingSystem: React.FC = () => {
       
       setInvoices(updatedInvoices);
       localStorage.setItem(BILL_KEY, JSON.stringify(updatedInvoices));
-      
-      // Notificação de confirmação solicitada
-      alert(`SISTEMA: O documento #${inv.invoiceNumber} foi excluído dos dados. ${wasFinal ? 'O bem alocado foi devolvido ao stock ativo e está agora disponível para nova venda.' : ''}`);
-      
+      alert(`SISTEMA: O documento #${inv.invoiceNumber} foi excluído dos dados.`);
       window.dispatchEvent(new Event('storage'));
     }
   };
@@ -232,10 +228,10 @@ const BillingSystem: React.FC = () => {
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden min-h-[600px]">
       <div className="flex border-b border-slate-200 bg-slate-50 print:hidden">
-        <button onClick={() => { setActiveTab('record'); if(!editingInvoice) setFormData({ customerName: '', idNumber: '', phoneNumber: '', productTimestamp: 0, contractType: ContractType.ORDER, sellingPrice: 0, discount: 0, isFinal: false }); }} className={`flex-1 py-5 font-bold text-xs tracking-widest transition-all ${activeTab === 'record' ? 'bg-white text-emerald-600 border-b-4 border-emerald-600' : 'text-slate-500 hover:bg-slate-100'}`}>
+        <button onClick={() => { setActiveTab('record'); if(!editingInvoice) setFormData({ customerName: '', idNumber: '', phoneNumber: '', productTimestamp: 0, contractType: ContractType.ORDER, sellingPrice: 0, discount: 0, isFinal: false }); }} className={`flex-1 py-5 font-bold text-xs tracking-widest transition-all ${activeTab === 'record' ? 'bg-white text-indigo-600 border-b-4 border-indigo-600' : 'text-slate-500 hover:bg-slate-100'}`}>
           {editingInvoice ? 'EDITAR DOCUMENTO' : 'EMITIR DOCUMENTO'}
         </button>
-        <button onClick={() => setActiveTab('consult')} className={`flex-1 py-5 font-bold text-xs tracking-widest transition-all ${activeTab === 'consult' ? 'bg-white text-emerald-600 border-b-4 border-emerald-600' : 'text-slate-500 hover:bg-slate-100'}`}>CONSULTAR LISTA</button>
+        <button onClick={() => setActiveTab('consult')} className={`flex-1 py-5 font-bold text-xs tracking-widest transition-all ${activeTab === 'consult' ? 'bg-white text-indigo-600 border-b-4 border-indigo-600' : 'text-slate-500 hover:bg-slate-100'}`}>CONSULTAR LISTA</button>
       </div>
 
       <div className="p-6 md:p-10">
@@ -326,7 +322,6 @@ const BillingSystem: React.FC = () => {
                       </td>
                     </tr>
                   ))}
-                  {invoices.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">Nenhum documento emitido</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -341,8 +336,8 @@ const BillingSystem: React.FC = () => {
             <button onClick={() => setSelectedInvoice(null)} className="bg-red-600 text-white p-3 rounded-xl shadow-xl"><X className="w-6 h-6" /></button>
           </div>
           <div id="invoice-to-print" className="bg-white w-full max-w-4xl min-h-screen p-10 md:p-20 shadow-2xl print:shadow-none print:m-0 print:p-8">
-             <div className="flex justify-between items-center border-b-8 border-slate-900 pb-10 mb-10">
-               <div><h1 className="text-4xl font-black uppercase tracking-tighter">Import Angola Pro</h1><p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Gestão de Importações e Vendas</p></div>
+             <div className="flex justify-between items-center border-b-8 border-indigo-600 pb-10 mb-10">
+               <div><h1 className="text-4xl font-[1000] uppercase tracking-tighter text-indigo-600">TECHIMPORT</h1><p className="text-[12px] font-black text-slate-900 uppercase tracking-[0.5em] mt-1">ANGOLA</p></div>
                <div className="text-right">
                  <h2 className={`text-3xl font-black uppercase ${selectedInvoice.isFinal ? 'text-emerald-600' : 'text-slate-400'}`}>{selectedInvoice.isFinal ? 'Factura Final' : 'Factura Proforma'}</h2>
                  <p className="text-sm font-black uppercase">Nº DOC: {selectedInvoice.invoiceNumber}</p>
@@ -378,7 +373,6 @@ const BillingSystem: React.FC = () => {
                     <span className="text-[10px] font-black uppercase text-slate-900">Total Acordado no Contrato</span>
                     <span className="text-lg font-black">{formatAOA(selectedInvoice.adjustedPrice)}</span>
                  </div>
-                 <p className="mt-4 text-[9px] text-slate-400 italic leading-relaxed">Nota: O pagamento inicial deve ser efectuado na data de emissão deste documento. As prestações seguintes vencem sucessivamente a cada 30 dias após o pagamento anterior.</p>
                </div>
              )}
 
@@ -387,7 +381,7 @@ const BillingSystem: React.FC = () => {
              </div>
              <div className="mt-32 grid grid-cols-2 gap-40 text-center">
                <div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-xs">Assinatura Cliente</div>
-               <div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-xs">Import Angola Pro</div>
+               <div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-xs">Tech Import Angola</div>
              </div>
           </div>
         </div>

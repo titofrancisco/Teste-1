@@ -370,13 +370,13 @@ const InventorySystem: React.FC = () => {
                   <input type="number" value={formData.additionalExpenses || ''} onChange={e => setFormData({...formData, additionalExpenses: Number(e.target.value)})} placeholder="0.00" className="bg-transparent w-full outline-none text-sm font-semibold" />
                 </div>
               </div>
-              <div className="bg-indigo-900 rounded-2xl p-4 text-white shadow-lg ring-4 ring-indigo-100">
-                <label className="text-[9px] font-black uppercase text-indigo-300 mb-1 block">15. Custo Total Real</label>
+              <div className="bg-indigo-600 rounded-2xl p-4 text-white shadow-lg ring-4 ring-indigo-100">
+                <label className="text-[9px] font-black uppercase text-indigo-200 mb-1 block">15. Custo Total Real</label>
                 <div className="text-xl font-black">{formatAOA(finalTotalCost)}</div>
               </div>
             </div>
 
-            <button type="submit" className={`w-full p-6 ${editingItem ? 'bg-indigo-800' : 'bg-indigo-600'} hover:opacity-90 text-white rounded-3xl font-black text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95`}>
+            <button type="submit" className={`w-full p-6 ${editingItem ? 'bg-slate-900' : 'bg-indigo-600'} hover:opacity-90 text-white rounded-3xl font-black text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95`}>
               <Box className="w-6 h-6" /> {editingItem ? 'ATUALIZAR REGISTO DE INVENTÁRIO' : 'FINALIZAR REGISTO DE INVENTÁRIO'}
             </button>
           </form>
@@ -446,7 +446,7 @@ const InventorySystem: React.FC = () => {
 
             {/* Cabeçalho exclusivo para impressão */}
             <div className="hidden print:block mb-8 border-b-4 border-slate-900 pb-4">
-               <h1 className="text-2xl font-black uppercase">Relatório Detalhado de Stock - Import Angola Pro</h1>
+               <h1 className="text-2xl font-black uppercase">Relatório Detalhado de Stock - Tech Import Angola</h1>
                <p className="text-xs font-bold text-slate-500">Documento Gerado em: {new Date().toLocaleString('pt-PT')}</p>
                <div className="flex gap-4 mt-2">
                  <p className="text-[10px] font-black uppercase">Filtro Aplicado: {filterType || 'Sem tipo'} / {filterCondition || 'Sem condição'}</p>
@@ -512,7 +512,7 @@ const InventorySystem: React.FC = () => {
 
             {/* Rodapé exclusivo para impressão */}
             <div className="hidden print:block mt-20 text-center border-t border-slate-200 pt-8">
-               <p className="text-[10px] font-black uppercase text-slate-400">Verificação de Inventário Digital - Import Angola Pro</p>
+               <p className="text-[10px] font-black uppercase text-slate-400">Verificação de Inventário Digital - Tech Import Angola</p>
                <div className="mt-10 flex justify-around">
                   <div className="w-48 border-t border-slate-900 pt-2 text-[10px] font-bold uppercase">Assinatura Responsável</div>
                   <div className="w-48 border-t border-slate-900 pt-2 text-[10px] font-bold uppercase">Carimbo da Empresa</div>

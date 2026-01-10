@@ -181,7 +181,7 @@ const App: React.FC = () => {
                        <ShieldCheck className="w-5 h-5" /> Integridade dos Dados
                      </h4>
                      <p className="text-sm text-indigo-900/70 font-medium leading-relaxed">
-                       O Import Angola PRO utiliza o Google Search via Gemini 3 para monitorizar os sites do BAI, BFA, BCI e Atlântico em tempo real. Não dependemos de APIs de terceiros que podem estar desatualizadas.
+                       O <strong>Tech Import Angola</strong> utiliza o Google Search via Gemini 3 para monitorizar os sites do BAI, BFA, BCI e Atlântico em tempo real. Não dependemos de APIs de terceiros que podem estar desatualizadas.
                      </p>
                    </div>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
