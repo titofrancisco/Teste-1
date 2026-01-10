@@ -18,12 +18,15 @@ import {
   ShieldAlert,
   PlusCircle,
   Box,
-  Eye
+  Eye,
+  Edit2,
+  XCircle
 } from 'lucide-react';
 
 const InventorySystem: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'record' | 'consult'>('record');
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   
   const INV_KEY = 'angola_inv_v4';
   const SUGG_KEY = 'angola_sugg_v4';
@@ -60,11 +63,9 @@ const InventorySystem: React.FC = () => {
   // Lógica de cálculo solicitada (Campo 10 e 12)
   const calculateFees = (base: number) => {
     if (!base || base <= 0) return 0;
-    // 1. Comissão de compra 3% + IVA 14% sobre essa comissão
     const comm1 = base * 0.03;
     const iva1 = comm1 * 0.14;
     const subtotal = base + comm1 + iva1;
-    // 2. Comissão de recarga 2% sobre subtotal + IVA 14% sobre essa comissão
     const comm2 = subtotal * 0.02;
     const iva2 = comm2 * 0.14;
     return subtotal + comm2 + iva2;
@@ -76,33 +77,17 @@ const InventorySystem: React.FC = () => {
 
   const updateSuggestions = (data: typeof formData) => {
     const newSugg = { ...suggestions };
-    
-    if (data.deviceType && !newSugg.deviceTypes.includes(data.deviceType)) {
-      newSugg.deviceTypes.push(data.deviceType);
-    }
-    
+    if (data.deviceType && !newSugg.deviceTypes.includes(data.deviceType)) newSugg.deviceTypes.push(data.deviceType);
     if (data.deviceType && data.brand) {
       if (!newSugg.brands[data.deviceType]) newSugg.brands[data.deviceType] = [];
-      if (!newSugg.brands[data.deviceType].includes(data.brand)) {
-        newSugg.brands[data.deviceType].push(data.brand);
-      }
+      if (!newSugg.brands[data.deviceType].includes(data.brand)) newSugg.brands[data.deviceType].push(data.brand);
     }
-
     if (data.brand && data.model) {
       if (!newSugg.models[data.brand]) newSugg.models[data.brand] = [];
-      if (!newSugg.models[data.brand].includes(data.model)) {
-        newSugg.models[data.brand].push(data.model);
-      }
+      if (!newSugg.models[data.brand].includes(data.model)) newSugg.models[data.brand].push(data.model);
     }
-
-    if (data.storage && !newSugg.storages.includes(data.storage)) {
-      newSugg.storages.push(data.storage);
-    }
-
-    if (data.color && !newSugg.colors.includes(data.color)) {
-      newSugg.colors.push(data.color);
-    }
-
+    if (data.storage && !newSugg.storages.includes(data.storage)) newSugg.storages.push(data.storage);
+    if (data.color && !newSugg.colors.includes(data.color)) newSugg.colors.push(data.color);
     setSuggestions(newSugg);
     localStorage.setItem(SUGG_KEY, JSON.stringify(newSugg));
   };
@@ -110,41 +95,74 @@ const InventorySystem: React.FC = () => {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const nextId = items.length + 1;
-    
-    const newItem: InventoryItem = {
-      id: nextId,
-      ...formData,
-      totalPurchasePrice,
-      totalFreight,
-      totalCost: finalTotalCost,
-      timestamp: Date.now(),
-      dateStr: new Date().toLocaleDateString('pt-PT'),
-      isSold: false
-    };
+    if (editingItem) {
+      const updatedItems = items.map(item => 
+        item.timestamp === editingItem.timestamp 
+        ? { 
+            ...item, 
+            ...formData, 
+            totalPurchasePrice, 
+            totalFreight, 
+            totalCost: finalTotalCost 
+          } 
+        : item
+      );
+      setItems(updatedItems);
+      localStorage.setItem(INV_KEY, JSON.stringify(updatedItems));
+      setEditingItem(null);
+    } else {
+      const nextId = items.length + 1;
+      const newItem: InventoryItem = {
+        id: nextId,
+        ...formData,
+        totalPurchasePrice,
+        totalFreight,
+        totalCost: finalTotalCost,
+        timestamp: Date.now(),
+        dateStr: new Date().toLocaleDateString('pt-PT'),
+        isSold: false
+      };
+      const updated = [...items, newItem];
+      setItems(updated);
+      localStorage.setItem(INV_KEY, JSON.stringify(updated));
+    }
 
-    const updated = [...items, newItem];
-    setItems(updated);
-    localStorage.setItem(INV_KEY, JSON.stringify(updated));
     updateSuggestions(formData);
-    
+    resetForm();
+    setActiveTab('consult');
+  };
+
+  const resetForm = () => {
     setFormData({
       deviceType: '', brand: '', model: '', condition: DeviceCondition.NEW,
       storage: '', color: '', specs: '', purchasePrice: 0,
       freight: 0, customsExpenses: 0, additionalExpenses: 0
     });
-    
-    setActiveTab('consult');
+    setEditingItem(null);
+  };
+
+  const handleEditClick = (item: InventoryItem) => {
+    setFormData({
+      deviceType: item.deviceType,
+      brand: item.brand,
+      model: item.model,
+      condition: item.condition,
+      storage: item.storage,
+      color: item.color,
+      specs: item.specs,
+      purchasePrice: item.purchasePrice,
+      freight: item.freight,
+      customsExpenses: item.customsExpenses,
+      additionalExpenses: item.additionalExpenses
+    });
+    setEditingItem(item);
+    setActiveTab('record');
   };
 
   const handleDelete = (timestamp: number) => {
     if (confirm('Deseja eliminar este registo? A numeração será reajustada.')) {
       const filtered = items.filter(i => i.timestamp !== timestamp);
-      // Re-indexação (Campo 1)
-      const reindexed = filtered.map((item, idx) => ({
-        ...item,
-        id: idx + 1
-      }));
+      const reindexed = filtered.map((item, idx) => ({ ...item, id: idx + 1 }));
       setItems(reindexed);
       localStorage.setItem(INV_KEY, JSON.stringify(reindexed));
     }
@@ -156,10 +174,10 @@ const InventorySystem: React.FC = () => {
     <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
       <div className="flex border-b border-slate-200 bg-slate-50 print:hidden">
         <button 
-          onClick={() => setActiveTab('record')} 
+          onClick={() => { setActiveTab('record'); if(!editingItem) resetForm(); }} 
           className={`flex-1 py-5 font-black text-[11px] tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'record' ? 'bg-white text-indigo-600 border-b-4 border-indigo-600' : 'text-slate-500 hover:bg-slate-100'}`}
         >
-          <Plus className="w-4 h-4" /> 1. REGISTAR NOVO ARTIGO
+          <Plus className="w-4 h-4" /> {editingItem ? 'EDITAR ARTIGO' : '1. REGISTAR NOVO ARTIGO'}
         </button>
         <button 
           onClick={() => setActiveTab('consult')} 
@@ -172,7 +190,17 @@ const InventorySystem: React.FC = () => {
       <div className="p-8">
         {activeTab === 'record' ? (
           <form onSubmit={handleSave} className="space-y-8 animate-fadeIn">
-            {/* Bloco 1: Identificação */}
+            {editingItem && (
+              <div className="flex justify-between items-center bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                <p className="text-xs font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
+                  <Edit2 className="w-4 h-4" /> Editando: {editingItem.brand} {editingItem.model} (#{editingItem.id})
+                </p>
+                <button type="button" onClick={resetForm} className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 text-[10px] font-bold uppercase">
+                  <XCircle className="w-4 h-4" /> Cancelar Edição
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50 rounded-3xl border border-slate-100">
               <div className="relative">
                 <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">2. Tipo de Dispositivo</label>
@@ -227,7 +255,6 @@ const InventorySystem: React.FC = () => {
               </div>
             </div>
 
-            {/* Campo 8: Especificações */}
             <div className="relative">
               <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">8. Outras Especificações (Máx. 500)</label>
               <div className="flex items-start bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3">
@@ -237,7 +264,6 @@ const InventorySystem: React.FC = () => {
               <p className="text-[10px] text-right text-slate-400 mt-1 font-bold">{formData.specs.length}/500</p>
             </div>
 
-            {/* Bloco Financeiro: Compra e Frete */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="p-6 bg-indigo-50/30 rounded-3xl border border-indigo-100 space-y-6">
                 <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
@@ -276,7 +302,6 @@ const InventorySystem: React.FC = () => {
               </div>
             </div>
 
-            {/* Bloco Final: Taxas e Custo Total */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">13. Despesas Alfandegárias (Kz)</label>
@@ -285,7 +310,6 @@ const InventorySystem: React.FC = () => {
                   <input type="number" value={formData.customsExpenses || ''} onChange={e => setFormData({...formData, customsExpenses: Number(e.target.value)})} placeholder="0.00" className="bg-transparent w-full outline-none text-sm font-semibold" />
                 </div>
               </div>
-
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">14. Despesas Adicionais (Kz)</label>
                 <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
@@ -293,15 +317,14 @@ const InventorySystem: React.FC = () => {
                   <input type="number" value={formData.additionalExpenses || ''} onChange={e => setFormData({...formData, additionalExpenses: Number(e.target.value)})} placeholder="0.00" className="bg-transparent w-full outline-none text-sm font-semibold" />
                 </div>
               </div>
-
               <div className="bg-indigo-900 rounded-2xl p-4 text-white shadow-lg ring-4 ring-indigo-100">
                 <label className="text-[9px] font-black uppercase text-indigo-300 mb-1 block">15. Custo Total Real</label>
                 <div className="text-xl font-black">{formatAOA(finalTotalCost)}</div>
               </div>
             </div>
 
-            <button type="submit" className="w-full p-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-3xl font-black text-lg shadow-xl shadow-indigo-200 transition-all flex items-center justify-center gap-3 active:scale-95">
-              <Box className="w-6 h-6" /> FINALIZAR REGISTO DE INVENTÁRIO
+            <button type="submit" className={`w-full p-6 ${editingItem ? 'bg-indigo-800' : 'bg-indigo-600'} hover:opacity-90 text-white rounded-3xl font-black text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95`}>
+              <Box className="w-6 h-6" /> {editingItem ? 'ATUALIZAR REGISTO DE INVENTÁRIO' : 'FINALIZAR REGISTO DE INVENTÁRIO'}
             </button>
           </form>
         ) : (
@@ -332,9 +355,7 @@ const InventorySystem: React.FC = () => {
                         <div className="text-[10px] font-bold text-slate-400 uppercase">{item.deviceType} • {item.storage} • {item.color}</div>
                       </td>
                       <td className="p-5">
-                        <div className="text-[10px] font-medium text-slate-600 max-w-[200px] truncate" title={item.specs}>
-                          {item.specs || 'Nenhuma especificação'}
-                        </div>
+                        <div className="text-[10px] font-medium text-slate-600 max-w-[200px] truncate" title={item.specs}>{item.specs || 'Nenhuma especificação'}</div>
                       </td>
                       <td className="p-5 text-center">
                         <span className={`text-[9px] font-black px-2 py-1 rounded-full ${item.isSold ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
@@ -344,8 +365,11 @@ const InventorySystem: React.FC = () => {
                       <td className="p-5 text-right">
                         <div className="font-black text-indigo-600 text-sm">{formatAOA(item.totalCost)}</div>
                       </td>
-                      <td className="p-5 text-center">
-                        <button onClick={() => handleDelete(item.timestamp)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                      <td className="p-5 text-center flex items-center justify-center gap-2">
+                        <button onClick={() => handleEditClick(item)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(item.timestamp)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Eliminar">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
