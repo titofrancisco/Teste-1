@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { BankRate } from '../types';
-import { TrendingUp, Award, ExternalLink, CalendarDays } from 'lucide-react';
+import { TrendingUp, Award, ExternalLink, CalendarDays, ArrowUpRight } from 'lucide-react';
 
 interface Props {
   rate: BankRate;
@@ -10,45 +10,54 @@ interface Props {
 
 const ExchangeRateCard: React.FC<Props> = ({ rate, isHighest }) => {
   return (
-    <div className={`p-4 rounded-xl border-2 transition-all group ${
+    <div className={`p-6 rounded-[2rem] border-2 transition-all group relative overflow-hidden ${
       isHighest 
-      ? 'border-indigo-600 bg-white shadow-md ring-4 ring-indigo-50' 
-      : 'border-slate-200 bg-white'
+      ? 'border-indigo-600 bg-white shadow-2xl shadow-indigo-200/50 ring-8 ring-indigo-50/50' 
+      : 'border-slate-100 bg-white hover:border-slate-300 hover:shadow-xl'
     }`}>
-      <div className="flex justify-between items-start mb-2">
-        <h3 className="font-bold text-slate-800">{rate.bank}</h3>
-        {isHighest && (
-          <span className="bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-bold animate-pulse">
-            <Award className="w-3 h-3" /> MAX
-          </span>
-        )}
-      </div>
-      <div className="flex items-end gap-1">
-        <span className="text-2xl font-black text-slate-900">{rate.rate.toFixed(2)}</span>
-        <span className="text-xs text-slate-500 font-medium mb-1.5 uppercase">AOA</span>
-      </div>
-      <div className="mt-3 space-y-1.5">
-        <div className="flex flex-col gap-0.5">
-          <p className="text-[9px] text-slate-400 font-black uppercase flex items-center gap-1 tracking-tighter">
-            <TrendingUp className="w-3 h-3 text-indigo-400" /> Sincronizado: {rate.lastUpdate}
-          </p>
+      {isHighest && (
+        <div className="absolute top-0 right-0 p-4">
+           <Award className="w-6 h-6 text-indigo-600 animate-bounce" />
+        </div>
+      )}
+      
+      <div className="flex flex-col h-full justify-between">
+        <div>
+          <h3 className="font-extrabold text-slate-900 uppercase tracking-wider text-[11px] mb-4 flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${isHighest ? 'bg-indigo-600' : 'bg-slate-300'}`}></span>
+            {rate.bank}
+          </h3>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-4xl font-[900] text-slate-900 tracking-tighter">
+              {rate.rate.toFixed(2).split('.')[0]}
+              <span className="text-xl text-slate-400">.{rate.rate.toFixed(2).split('.')[1]}</span>
+            </span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">AOA</span>
+          </div>
+        </div>
+
+        <div className="mt-8 space-y-3 pt-4 border-t border-slate-50">
+          <div className="flex items-center justify-between">
+            <p className="text-[9px] text-slate-400 font-bold uppercase flex items-center gap-1.5">
+              <TrendingUp className="w-3 h-3" /> Sync: {rate.lastUpdate}
+            </p>
+            {rate.sourceUrl && (
+              <a 
+                href={rate.sourceUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-7 h-7 bg-slate-100 text-slate-400 hover:bg-indigo-600 hover:text-white rounded-lg flex items-center justify-center transition-all"
+              >
+                <ArrowUpRight className="w-4 h-4" />
+              </a>
+            )}
+          </div>
           {rate.publishedAt && (
-            <p className="text-[9px] text-emerald-600 font-black uppercase flex items-center gap-1 tracking-tighter">
-              <CalendarDays className="w-3 h-3" /> No Banco: {rate.publishedAt}
+            <p className="text-[9px] text-emerald-500 font-black uppercase flex items-center gap-1.5">
+              <CalendarDays className="w-3 h-3" /> No Portal: {rate.publishedAt}
             </p>
           )}
         </div>
-        
-        {rate.sourceUrl && (
-          <a 
-            href={rate.sourceUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-[9px] text-indigo-500 hover:text-indigo-700 font-black flex items-center gap-1 transition-colors uppercase border-t border-slate-50 pt-1.5"
-          >
-            <ExternalLink className="w-2.5 h-2.5" /> Verificar no Site Oficial
-          </a>
-        )}
       </div>
     </div>
   );

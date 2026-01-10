@@ -22,7 +22,9 @@ import {
   Edit2,
   XCircle,
   Filter,
-  FileText
+  FileText,
+  Calendar,
+  RotateCcw
 } from 'lucide-react';
 
 const InventorySystem: React.FC = () => {
@@ -31,6 +33,12 @@ const InventorySystem: React.FC = () => {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Novos estados para filtros robustos
+  const [filterType, setFilterType] = useState('');
+  const [filterCondition, setFilterCondition] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+
   const INV_KEY = 'angola_inv_v4';
   const SUGG_KEY = 'angola_sugg_v4';
 
@@ -68,7 +76,6 @@ const InventorySystem: React.FC = () => {
     return () => window.removeEventListener('storage', load);
   }, []);
 
-  // Lógica de cálculo solicitada (Campo 10 e 12)
   const calculateFees = (base: number) => {
     if (!base || base <= 0) return 0;
     const comm1 = base * 0.03;
@@ -84,14 +91,46 @@ const InventorySystem: React.FC = () => {
   const finalTotalCost = totalPurchasePrice + totalFreight + formData.customsExpenses + formData.additionalExpenses;
 
   const filteredItems = useMemo(() => {
-    return items.filter(item => 
-      item.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.deviceType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.id.toString().includes(searchTerm) ||
-      item.storage.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [items, searchTerm]);
+    return items.filter(item => {
+      // 1. Pesquisa Global (Abrange todos os campos)
+      const searchStr = searchTerm.toLowerCase();
+      const matchesSearch = searchTerm === '' || 
+        item.brand.toLowerCase().includes(searchStr) ||
+        item.model.toLowerCase().includes(searchStr) ||
+        item.deviceType.toLowerCase().includes(searchStr) ||
+        item.id.toString().includes(searchStr) ||
+        item.storage.toLowerCase().includes(searchStr) ||
+        item.color.toLowerCase().includes(searchStr) ||
+        item.specs.toLowerCase().includes(searchStr) ||
+        item.condition.toLowerCase().includes(searchStr);
+
+      // 2. Filtro por Tipo de Dispositivo
+      const matchesType = filterType === '' || item.deviceType === filterType;
+
+      // 3. Filtro por Condição
+      const matchesCondition = filterCondition === '' || item.condition === filterCondition;
+
+      // 4. Filtro por Data de Registo
+      let matchesDate = true;
+      if (filterStartDate || filterEndDate) {
+        const itemDate = new Date(item.timestamp);
+        itemDate.setHours(0, 0, 0, 0);
+
+        if (filterStartDate) {
+          const start = new Date(filterStartDate);
+          start.setHours(0, 0, 0, 0);
+          if (itemDate < start) matchesDate = false;
+        }
+        if (filterEndDate) {
+          const end = new Date(filterEndDate);
+          end.setHours(23, 59, 59, 999);
+          if (itemDate > end) matchesDate = false;
+        }
+      }
+
+      return matchesSearch && matchesType && matchesCondition && matchesDate;
+    });
+  }, [items, searchTerm, filterType, filterCondition, filterStartDate, filterEndDate]);
 
   const updateSuggestions = (data: typeof formData) => {
     const newSugg = { ...suggestions };
@@ -112,17 +151,10 @@ const InventorySystem: React.FC = () => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (editingItem) {
       const updatedItems = items.map(item => 
         item.timestamp === editingItem.timestamp 
-        ? { 
-            ...item, 
-            ...formData, 
-            totalPurchasePrice, 
-            totalFreight, 
-            totalCost: finalTotalCost 
-          } 
+        ? { ...item, ...formData, totalPurchasePrice, totalFreight, totalCost: finalTotalCost } 
         : item
       );
       setItems(updatedItems);
@@ -144,7 +176,6 @@ const InventorySystem: React.FC = () => {
       setItems(updated);
       localStorage.setItem(INV_KEY, JSON.stringify(updated));
     }
-
     updateSuggestions(formData);
     resetForm();
     setActiveTab('consult');
@@ -160,18 +191,20 @@ const InventorySystem: React.FC = () => {
     setEditingItem(null);
   };
 
+  const resetFilters = () => {
+    setSearchTerm('');
+    setFilterType('');
+    setFilterCondition('');
+    setFilterStartDate('');
+    setFilterEndDate('');
+  };
+
   const handleEditClick = (item: InventoryItem) => {
     setFormData({
-      deviceType: item.deviceType,
-      brand: item.brand,
-      model: item.model,
-      condition: item.condition,
-      storage: item.storage,
-      color: item.color,
-      specs: item.specs,
-      purchasePrice: item.purchasePrice,
-      freight: item.freight,
-      customsExpenses: item.customsExpenses,
+      deviceType: item.deviceType, brand: item.brand, model: item.model,
+      condition: item.condition, storage: item.storage, color: item.color,
+      specs: item.specs, purchasePrice: item.purchasePrice,
+      freight: item.freight, customsExpenses: item.customsExpenses,
       additionalExpenses: item.additionalExpenses
     });
     setEditingItem(item);
@@ -186,10 +219,6 @@ const InventorySystem: React.FC = () => {
       localStorage.setItem(INV_KEY, JSON.stringify(reindexed));
       window.dispatchEvent(new Event('storage'));
     }
-  };
-
-  const handlePrintReport = () => {
-    window.print();
   };
 
   const formatAOA = (val: number) => new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(val);
@@ -353,46 +382,85 @@ const InventorySystem: React.FC = () => {
           </form>
         ) : (
           <div className="animate-fadeIn space-y-6" id="stock-report-section">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 print:hidden">
-               <div>
-                  <h3 className="font-black text-sm text-slate-400 uppercase tracking-widest">Stock Ativo ({filteredItems.filter(i => !i.isSold).length})</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Gestão e Filtro de Inventário</p>
+            <div className="flex flex-col gap-6 mb-4 print:hidden">
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h3 className="font-black text-sm text-slate-400 uppercase tracking-widest">Stock Consultável ({filteredItems.length})</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Gestão e Filtros Robustos de Inventário</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={resetFilters} className="p-3 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-all shadow-sm" title="Limpar Filtros">
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => window.print()} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 hover:bg-slate-800 transition-all shadow-md active:scale-95">
+                      <FileText className="w-4 h-4" /> Emitir Relatório
+                    </button>
+                  </div>
                </div>
                
-               <div className="flex flex-1 md:max-w-md w-full gap-2">
-                 <div className="relative flex-1">
-                   <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+               {/* Barra de Pesquisa Global e Filtros Robustos */}
+               <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 space-y-4 shadow-inner">
+                 <div className="relative">
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                    <input 
                     type="text" 
-                    placeholder="Filtrar por Marca, Modelo ou ID..." 
+                    placeholder="Pesquisa Global: Marca, Modelo, ID, Armazenamento, Cor, Condição..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-semibold outline-none focus:ring-4 focus:ring-indigo-100 transition-all shadow-sm"
                    />
                  </div>
-                 <button 
-                  onClick={handlePrintReport} 
-                  className="px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 hover:bg-slate-800 transition-all shadow-md active:scale-95"
-                 >
-                   <FileText className="w-4 h-4" /> Emitir Relatório
-                 </button>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Tipo</label>
+                      <select value={filterType} onChange={e => setFilterType(e.target.value)} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 transition-all">
+                        <option value="">Todos os Tipos</option>
+                        {suggestions.deviceTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Condição</label>
+                      <select value={filterCondition} onChange={e => setFilterCondition(e.target.value)} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 transition-all">
+                        <option value="">Todas as Condições</option>
+                        {Object.values(DeviceCondition).map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Registo Desde</label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                        <input type="date" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} className="w-full pl-10 pr-3 py-3 bg-white border border-slate-200 rounded-xl text-[11px] font-bold outline-none" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Registo Até</label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                        <input type="date" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} className="w-full pl-10 pr-3 py-3 bg-white border border-slate-200 rounded-xl text-[11px] font-bold outline-none" />
+                      </div>
+                    </div>
+                 </div>
                </div>
             </div>
 
             {/* Cabeçalho exclusivo para impressão */}
             <div className="hidden print:block mb-8 border-b-4 border-slate-900 pb-4">
-               <h1 className="text-2xl font-black uppercase">Relatório de Stock - Import Angola Pro</h1>
+               <h1 className="text-2xl font-black uppercase">Relatório Detalhado de Stock - Import Angola Pro</h1>
                <p className="text-xs font-bold text-slate-500">Documento Gerado em: {new Date().toLocaleString('pt-PT')}</p>
-               <p className="text-xs font-black uppercase mt-2">Total de Itens: {filteredItems.length}</p>
+               <div className="flex gap-4 mt-2">
+                 <p className="text-[10px] font-black uppercase">Filtro Aplicado: {filterType || 'Sem tipo'} / {filterCondition || 'Sem condição'}</p>
+                 <p className="text-[10px] font-black uppercase">Total de Itens: {filteredItems.length}</p>
+               </div>
             </div>
             
             <div className="overflow-x-auto rounded-3xl border border-slate-100 shadow-sm print:border-none print:shadow-none">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-900 text-[10px] font-black uppercase text-slate-400 tracking-widest print:bg-slate-100 print:text-slate-900">
                   <tr>
-                    <th className="p-5">Nº</th>
-                    <th className="p-5">Artigo</th>
-                    <th className="p-5">Especificações</th>
+                    <th className="p-5">ID</th>
+                    <th className="p-5">Artigo / Condição</th>
+                    <th className="p-5">Specs / Data</th>
                     <th className="p-5 text-center">Estado</th>
                     <th className="p-5 text-right">C. Total Real</th>
                     <th className="p-5 text-center print:hidden">Ações</th>
@@ -404,10 +472,16 @@ const InventorySystem: React.FC = () => {
                       <td className="p-5 font-black text-indigo-600 text-sm print:text-black">#{item.id}</td>
                       <td className="p-5">
                         <div className="font-black text-slate-900 text-sm uppercase">{item.brand} {item.model}</div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">{item.deviceType} • {item.storage} • {item.color}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[9px] font-black px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded-md">{item.deviceType}</span>
+                          <span className="text-[9px] font-black px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-md uppercase">{item.condition}</span>
+                        </div>
                       </td>
                       <td className="p-5">
-                        <div className="text-[10px] font-medium text-slate-600 max-w-[200px] truncate print:whitespace-normal print:max-w-none" title={item.specs}>{item.specs || 'Nenhuma especificação'}</div>
+                        <div className="text-[10px] font-medium text-slate-600 max-w-[180px] truncate" title={item.specs}>{item.specs || 'Nenhuma especificação'}</div>
+                        <div className="text-[9px] text-slate-400 font-bold mt-1 uppercase flex items-center gap-1">
+                           <Calendar className="w-2.5 h-2.5" /> {new Date(item.timestamp).toLocaleDateString('pt-PT')}
+                        </div>
                       </td>
                       <td className="p-5 text-center">
                         <span className={`text-[9px] font-black px-2 py-1 rounded-full ${item.isSold ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
@@ -427,7 +501,10 @@ const InventorySystem: React.FC = () => {
                       </td>
                     </tr>
                   )) : (
-                    <tr><td colSpan={6} className="p-20 text-center text-slate-300 font-bold uppercase text-xs tracking-widest">Sem itens correspondentes</td></tr>
+                    <tr><td colSpan={6} className="p-20 text-center text-slate-300 font-bold uppercase text-xs tracking-widest flex flex-col items-center gap-4">
+                      <Box className="w-10 h-10 opacity-20" />
+                      Sem itens correspondentes aos filtros selecionados
+                    </td></tr>
                   )}
                 </tbody>
               </table>
