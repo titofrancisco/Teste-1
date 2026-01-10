@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Invoice, InventoryItem, ContractType } from '../types';
 import { 
   TrendingUp, 
@@ -12,22 +12,32 @@ import {
   ArrowUpRight,
   History,
   Info,
-  FileText
+  FileText,
+  Download,
+  Upload,
+  Database,
+  AlertTriangle
 } from 'lucide-react';
 
 const ReportsSystem: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Correcting storage key to v4
+  // Chaves persistentes (v4)
   const INV_KEY = 'angola_inv_v4';
   const BILL_KEY = 'angola_invoices_final_v1';
 
   useEffect(() => {
-    const savedInvoices = localStorage.getItem(BILL_KEY);
-    const savedInventory = localStorage.getItem(INV_KEY);
-    if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
-    if (savedInventory) setInventory(JSON.parse(savedInventory));
+    const load = () => {
+      const savedInvoices = localStorage.getItem(BILL_KEY);
+      const savedInventory = localStorage.getItem(INV_KEY);
+      if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
+      if (savedInventory) setInventory(JSON.parse(savedInventory));
+    };
+    load();
+    window.addEventListener('storage', load);
+    return () => window.removeEventListener('storage', load);
   }, []);
 
   const stats = useMemo(() => {
@@ -81,6 +91,47 @@ const ReportsSystem: React.FC = () => {
     window.print();
   };
 
+  // Funções de Backup e Restauro
+  const exportBackup = () => {
+    const data = {
+      inventory: JSON.parse(localStorage.getItem(INV_KEY) || '[]'),
+      invoices: JSON.parse(localStorage.getItem(BILL_KEY) || '[]'),
+      exportDate: new Date().toISOString(),
+      version: '4.0'
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `backup_import_angola_${new Date().toLocaleDateString('pt-PT').replace(/\//g, '-')}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        if (data.inventory && data.invoices) {
+          if (confirm('Aviso: Isso irá substituir todos os dados actuais pelos do ficheiro de backup. Continuar?')) {
+            localStorage.setItem(INV_KEY, JSON.stringify(data.inventory));
+            localStorage.setItem(BILL_KEY, JSON.stringify(data.invoices));
+            window.location.reload(); // Recarregar para aplicar mudanças
+          }
+        } else {
+          alert('Ficheiro de backup inválido.');
+        }
+      } catch (err) {
+        alert('Erro ao ler o ficheiro de backup.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div id="reports-container" className="space-y-8 pb-10 print:p-8 print:bg-white">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:mb-8">
@@ -88,12 +139,27 @@ const ReportsSystem: React.FC = () => {
           <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Painel Executivo</h2>
           <p className="text-slate-500 font-medium">Performance Financeira e Gestão de Stock.</p>
         </div>
-        <button 
-          onClick={handlePrint} 
-          className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-black shadow-lg print:hidden"
-        >
-          <Printer className="w-4 h-4" /> EXPORTAR RELATÓRIO PDF
-        </button>
+        <div className="flex gap-2 print:hidden">
+           <button 
+            onClick={handlePrint} 
+            className="flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-900 rounded-2xl font-black text-[10px] uppercase hover:bg-slate-200 transition-all"
+          >
+            <Printer className="w-4 h-4" /> PDF
+          </button>
+          <button 
+            onClick={exportBackup} 
+            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all"
+          >
+            <Download className="w-4 h-4" /> Exportar Backup
+          </button>
+          <button 
+            onClick={() => fileInputRef.current?.click()} 
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-[10px] uppercase hover:bg-slate-50 transition-all"
+          >
+            <Upload className="w-4 h-4" /> Importar
+          </button>
+          <input type="file" ref={fileInputRef} onChange={importBackup} className="hidden" accept=".json" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-2">
@@ -181,9 +247,11 @@ const ReportsSystem: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:shadow-none">
-        <div className="p-8 border-b flex items-center gap-3">
-          <ShoppingBag className="w-6 h-6 text-rose-600" />
-          <h3 className="font-black text-sm uppercase">Histórico de Vendas Recentes</h3>
+        <div className="p-8 border-b flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <ShoppingBag className="w-6 h-6 text-rose-600" />
+            <h3 className="font-black text-sm uppercase">Histórico de Vendas Recentes</h3>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -201,6 +269,20 @@ const ReportsSystem: React.FC = () => {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="bg-amber-50 rounded-3xl p-8 border border-amber-200 print:hidden">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center shrink-0">
+            <Database className="w-6 h-6 text-amber-600" />
+          </div>
+          <div>
+            <h4 className="font-black text-slate-900 uppercase text-sm mb-2">Dica de Segurança</h4>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Para garantir que os seus dados estão seguros mesmo se o navegador for limpo ou o dispositivo trocado, utilize o botão <strong>Exportar Backup</strong> semanalmente. Guarde o ficheiro JSON num local seguro (Google Drive, Pen Drive, etc.).
+            </p>
+          </div>
         </div>
       </div>
 
