@@ -1,17 +1,27 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Guideline: Always use process.env.API_KEY directly when initializing.
 export async function fetchExchangeRates() {
   if (!process.env.API_KEY) {
     console.warn("API_KEY não configurada. Usando valores padrão.");
     return getDefaultRates();
   }
 
+  const today = new Date().toLocaleDateString('pt-PT', { 
+    timeZone: 'Africa/Luanda',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
   try {
-    // Guideline: Always use new GoogleGenAI({apiKey: process.env.API_KEY});
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = "Quais são as taxas de câmbio atuais de venda de USD para Kwanza (AOA) nos bancos angolanos BAI, BCI, BFA e Atlântico? Retorne obrigatoriamente um array JSON de objetos com 'bank' (string) e 'rate' (number).";
+    // Prompt mais agressivo para garantir dados de HOJE e taxas de VENDA
+    const prompt = `Hoje é ${today}. Pesquise obrigatoriamente nos sites oficiais dos bancos angolanos (BAI, BCI, BFA e Atlântico) a TAXA DE CÂMBIO DE VENDA de USD para Kwanza (AOA). 
+    IGNORE valores antigos. Retorne apenas um array JSON de objetos com 'bank' (string), 'rate' (number) e 'sourceUrl' (string do link direto do banco).
+    Exemplo: [{"bank": "BAI", "rate": 915.5, "sourceUrl": "https://www.bai.ao"}]`;
     
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -26,6 +36,7 @@ export async function fetchExchangeRates() {
             properties: {
               bank: { type: Type.STRING },
               rate: { type: Type.NUMBER },
+              sourceUrl: { type: Type.STRING }
             },
             required: ["bank", "rate"]
           }
@@ -33,21 +44,19 @@ export async function fetchExchangeRates() {
       },
     });
 
-    // Extract grounding URLs as per guideline: "If Google Search is used, you MUST ALWAYS extract the URLs from groundingChunks and list them on the web app."
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    const sourceUrls = groundingChunks
-      .filter((chunk: any) => chunk.web && chunk.web.uri)
-      .map((chunk: any) => chunk.web.uri);
-
-    // Guideline: Access generated text via the .text property (not a method).
     const text = response.text || "";
-    // Tentar extrair JSON caso o modelo retorne texto extra ou citações
+    
+    // Tenta extrair o JSON
     const jsonMatch = text.match(/\[.*\]/s);
     let results = JSON.parse(jsonMatch ? jsonMatch[0] : text);
     
-    // Attach grounding info to the results if available
-    if (Array.isArray(results) && sourceUrls.length > 0) {
-      results = results.map((r: any) => ({ ...r, sourceUrl: sourceUrls[0] }));
+    // Se o modelo não retornou a URL no JSON, tenta pegar das grounding chunks
+    if (Array.isArray(results)) {
+      results = results.map((r: any, index: number) => {
+        const foundUrl = r.sourceUrl || (groundingChunks[index] as any)?.web?.uri || groundingChunks[0]?.web?.uri;
+        return { ...r, sourceUrl: foundUrl };
+      });
     }
     
     return Array.isArray(results) && results.length > 0 ? results : getDefaultRates();

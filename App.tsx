@@ -8,11 +8,12 @@ import ImportCalculator from './components/ImportCalculator';
 import InventorySystem from './components/InventorySystem';
 import BillingSystem from './components/BillingSystem';
 import ReportsSystem from './components/ReportsSystem';
-import { Calculator, Package, Info, RefreshCw, ReceiptText, FileBarChart } from 'lucide-react';
+import { Calculator, Package, Info, RefreshCw, ReceiptText, FileBarChart, Clock } from 'lucide-react';
 
 const App: React.FC = () => {
   const [rates, setRates] = useState<BankRate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastSync, setLastSync] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'home' | 'calc' | 'inv' | 'bill' | 'info' | 'reports'>('home');
 
   const maxRate = rates.length > 0 ? Math.max(...rates.map(r => r.rate)) : 0;
@@ -20,12 +21,20 @@ const App: React.FC = () => {
   const loadRates = async () => {
     setLoading(true);
     const data = await fetchExchangeRates();
-    setRates(data.map((d: any) => ({ ...d, lastUpdate: new Date().toLocaleTimeString() })));
+    const now = new Date().toLocaleTimeString('pt-PT');
+    setRates(data.map((d: any) => ({ 
+      ...d, 
+      lastUpdate: now 
+    })));
+    setLastSync(now);
     setLoading(false);
   };
 
   useEffect(() => {
     loadRates();
+    // Auto-refresh a cada 30 minutos para manter o câmbio "fresco"
+    const interval = setInterval(loadRates, 30 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -35,14 +44,20 @@ const App: React.FC = () => {
       <main className="max-w-5xl mx-auto px-4 py-8 pb-24">
         {activeTab === 'home' && (
           <section className="space-y-6 animate-fadeIn">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-slate-800">Câmbio USD/AOA Hoje</h2>
+            <div className="flex justify-between items-end">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Câmbio USD/AOA Hoje</h2>
+                <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1 uppercase tracking-widest mt-1">
+                  <Clock className="w-3 h-3" /> Atualizado às: {lastSync || 'Sincronizando...'}
+                </p>
+              </div>
               <button 
                 onClick={loadRates}
-                className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
                 disabled={loading}
               >
-                <RefreshCw className={`w-5 h-5 text-indigo-600 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-indigo-600 ${loading ? 'animate-spin' : ''}`} />
+                <span className="text-[10px] font-black uppercase text-indigo-600">Atualizar Agora</span>
               </button>
             </div>
 
@@ -155,7 +170,6 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Nav Mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50">
         <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center ${activeTab === 'home' ? 'text-indigo-600' : 'text-slate-400'}`}>
           <RefreshCw className="w-5 h-5" />
