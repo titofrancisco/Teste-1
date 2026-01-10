@@ -18,7 +18,7 @@ import {
   ShieldAlert,
   PlusCircle,
   Box,
-  Target
+  Eye
 } from 'lucide-react';
 
 const InventorySystem: React.FC = () => {
@@ -47,8 +47,7 @@ const InventorySystem: React.FC = () => {
     purchasePrice: 0,
     freight: 0,
     customsExpenses: 0,
-    additionalExpenses: 0,
-    estimatedCost: 0
+    additionalExpenses: 0
   });
 
   useEffect(() => {
@@ -132,8 +131,7 @@ const InventorySystem: React.FC = () => {
     setFormData({
       deviceType: '', brand: '', model: '', condition: DeviceCondition.NEW,
       storage: '', color: '', specs: '', purchasePrice: 0,
-      freight: 0, customsExpenses: 0, additionalExpenses: 0,
-      estimatedCost: 0
+      freight: 0, customsExpenses: 0, additionalExpenses: 0
     });
     
     setActiveTab('consult');
@@ -279,7 +277,7 @@ const InventorySystem: React.FC = () => {
             </div>
 
             {/* Bloco Final: Taxas e Custo Total */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">13. Despesas Alfandegárias (Kz)</label>
                 <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
@@ -293,14 +291,6 @@ const InventorySystem: React.FC = () => {
                 <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
                   <PlusCircle className="w-4 h-4 text-amber-500 mr-3" />
                   <input type="number" value={formData.additionalExpenses || ''} onChange={e => setFormData({...formData, additionalExpenses: Number(e.target.value)})} placeholder="0.00" className="bg-transparent w-full outline-none text-sm font-semibold" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black text-indigo-400 uppercase mb-2 block tracking-widest">16. Custo Previsto (Kz)</label>
-                <div className="flex items-center bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 ring-2 ring-indigo-100/50">
-                  <Target className="w-4 h-4 text-indigo-500 mr-3" />
-                  <input type="number" value={formData.estimatedCost || ''} onChange={e => setFormData({...formData, estimatedCost: Number(e.target.value)})} placeholder="0.00" className="bg-transparent w-full outline-none text-sm font-bold text-indigo-700" />
                 </div>
               </div>
 
@@ -327,7 +317,8 @@ const InventorySystem: React.FC = () => {
                   <tr>
                     <th className="p-5">Nº</th>
                     <th className="p-5">Artigo</th>
-                    <th className="p-5 text-center">C. Previsto</th>
+                    <th className="p-5">Especificações</th>
+                    <th className="p-5 text-center">Estado</th>
                     <th className="p-5 text-right">C. Total Real</th>
                     <th className="p-5 text-center">Ações</th>
                   </tr>
@@ -340,20 +331,27 @@ const InventorySystem: React.FC = () => {
                         <div className="font-black text-slate-900 text-sm uppercase">{item.brand} {item.model}</div>
                         <div className="text-[10px] font-bold text-slate-400 uppercase">{item.deviceType} • {item.storage} • {item.color}</div>
                       </td>
+                      <td className="p-5">
+                        <div className="text-[10px] font-medium text-slate-600 max-w-[200px] truncate" title={item.specs}>
+                          {item.specs || 'Nenhuma especificação'}
+                        </div>
+                      </td>
                       <td className="p-5 text-center">
-                        <div className="text-[10px] font-black text-slate-400 uppercase">{formatAOA(item.estimatedCost || 0)}</div>
+                        <span className={`text-[9px] font-black px-2 py-1 rounded-full ${item.isSold ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                          {item.isSold ? 'INDISPONÍVEL' : 'DISPONÍVEL'}
+                        </span>
                       </td>
                       <td className="p-5 text-right">
                         <div className="font-black text-indigo-600 text-sm">{formatAOA(item.totalCost)}</div>
                       </td>
                       <td className="p-5 text-center">
-                        <button onClick={() => handleDelete(item.timestamp)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg">
+                        <button onClick={() => handleDelete(item.timestamp)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
                     </tr>
                   )) : (
-                    <tr><td colSpan={5} className="p-20 text-center text-slate-300 font-bold uppercase text-xs tracking-widest">Sem itens em stock</td></tr>
+                    <tr><td colSpan={6} className="p-20 text-center text-slate-300 font-bold uppercase text-xs tracking-widest">Sem itens em stock</td></tr>
                   )}
                 </tbody>
               </table>

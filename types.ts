@@ -37,7 +37,6 @@ export interface InventoryItem {
   customsExpenses: number; // Campo 13
   additionalExpenses: number; // Campo 14
   totalCost: number; // Campo 15: Custo Total Real (Calculado)
-  estimatedCost: number; // Campo 16: Custo Previsto (Manual)
   timestamp: number;
   dateStr: string;
   isSold?: boolean;
