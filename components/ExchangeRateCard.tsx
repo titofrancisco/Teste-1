@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { BankRate } from '../types';
-import { TrendingUp, Award } from 'lucide-react';
+import { TrendingUp, Award, ExternalLink } from 'lucide-react';
 
 interface Props {
   rate: BankRate;
@@ -27,9 +27,21 @@ const ExchangeRateCard: React.FC<Props> = ({ rate, isHighest }) => {
         <span className="text-2xl font-black text-slate-900">{rate.rate.toFixed(2)}</span>
         <span className="text-xs text-slate-500 font-medium mb-1.5 uppercase">AOA</span>
       </div>
-      <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
-        <TrendingUp className="w-3 h-3" /> Venda • {rate.lastUpdate}
-      </p>
+      <div className="mt-2 flex flex-col gap-1">
+        <p className="text-[10px] text-slate-400 flex items-center gap-1">
+          <TrendingUp className="w-3 h-3" /> Venda • {rate.lastUpdate}
+        </p>
+        {rate.sourceUrl && (
+          <a 
+            href={rate.sourceUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-[9px] text-indigo-500 hover:text-indigo-700 font-bold flex items-center gap-1 transition-colors"
+          >
+            <ExternalLink className="w-2.5 h-2.5" /> Fonte: Google Search
+          </a>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,17 +1,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Invoice, ContractType, InventoryItem, PaymentInstallment } from '../types';
+import { Invoice, ContractType, InventoryItem } from '../types';
 import { 
   ReceiptText, 
-  Search, 
   Trash2, 
   Printer, 
   X, 
-  User, 
-  Smartphone, 
-  CheckCircle2,
-  FileBadge,
-  Phone,
   ArrowRightCircle,
   ShieldCheck,
   AlertCircle
@@ -22,11 +16,11 @@ const BillingSystem: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
   const [proformaToFinalize, setProformaToFinalize] = useState<Invoice | null>(null);
   const [showConfirmIssue, setShowConfirmIssue] = useState(false);
 
-  const INV_KEY = 'angola_inv_v3';
+  // Syncing with InventorySystem.tsx v4 key
+  const INV_KEY = 'angola_inv_v4';
   const BILL_KEY = 'angola_invoices_final_v1';
 
   useEffect(() => {
@@ -56,7 +50,6 @@ const BillingSystem: React.FC = () => {
   });
 
   const cleanOtherProformas = (allInvoices: Invoice[], prodId: number, currentDocId: number) => {
-    // Remove qualquer proforma que tenha o mesmo produto e NÃO seja o documento que acabámos de finalizar/criar
     return allInvoices.filter(inv => 
       inv.productTimestamp !== prodId || inv.isFinal || inv.timestamp === currentDocId
     );
@@ -72,7 +65,7 @@ const BillingSystem: React.FC = () => {
       ...formData,
       productDetails: product || {},
       adjustedPrice: adjPrice,
-      installments: [], // Gerado na visualização/impressão se necessário
+      installments: [],
       date: new Date().toLocaleDateString('pt-PT'),
       timestamp: Date.now()
     };
@@ -164,7 +157,7 @@ const BillingSystem: React.FC = () => {
                       <td className="p-4 flex justify-end gap-2">
                         <button onClick={() => setSelectedInvoice(inv)} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all"><Printer className="w-4 h-4" /></button>
                         {!inv.isFinal && <button onClick={() => setProformaToFinalize(inv)} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all"><ArrowRightCircle className="w-4 h-4" /></button>}
-                        <button onClick={() => { if(confirm('Anular documento?')) { setInvoices(invoices.filter(i => i.timestamp !== inv.timestamp)); localStorage.setItem(BILL_KEY, JSON.stringify(invoices.filter(i => i.timestamp !== inv.timestamp))); }}} className="p-2 bg-red-50 text-red-600 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => { if(confirm('Anular documento?')) { const updated = invoices.filter(i => i.timestamp !== inv.timestamp); setInvoices(updated); localStorage.setItem(BILL_KEY, JSON.stringify(updated)); }}} className="p-2 bg-red-50 text-red-600 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                       </td>
                     </tr>
                   ))}
@@ -175,7 +168,6 @@ const BillingSystem: React.FC = () => {
         )}
       </div>
 
-      {/* MODAL DE IMPRESSÃO - REFORÇADO */}
       {selectedInvoice && (
         <div className="fixed inset-0 bg-white md:bg-slate-900/90 z-[1000] flex items-start justify-center overflow-y-auto p-0 md:p-10">
           <div className="absolute top-4 right-4 print:hidden z-[1001] flex gap-2">
@@ -235,7 +227,6 @@ const BillingSystem: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL DE FINALIZAÇÃO - PURGE AUTOMÁTICO */}
       {proformaToFinalize && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[500] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-3xl p-8 text-center shadow-2xl">
@@ -250,7 +241,6 @@ const BillingSystem: React.FC = () => {
         </div>
       )}
 
-      {/* CONFIRMAÇÃO DE EMISSÃO */}
       {showConfirmIssue && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[500] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-3xl p-8 text-center shadow-2xl">

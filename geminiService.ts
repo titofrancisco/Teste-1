@@ -1,17 +1,16 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// O Vite substituirá process.env.API_KEY durante o build graças ao vite.config.ts
-const apiKey = process.env.API_KEY;
-
+// Guideline: Always use process.env.API_KEY directly when initializing.
 export async function fetchExchangeRates() {
-  if (!apiKey) {
+  if (!process.env.API_KEY) {
     console.warn("API_KEY não configurada. Usando valores padrão.");
     return getDefaultRates();
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    // Guideline: Always use new GoogleGenAI({apiKey: process.env.API_KEY});
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const prompt = "Quais são as taxas de câmbio atuais de venda de USD para Kwanza (AOA) nos bancos angolanos BAI, BCI, BFA e Atlântico? Retorne obrigatoriamente um array JSON de objetos com 'bank' (string) e 'rate' (number).";
     
     const response = await ai.models.generateContent({
@@ -34,10 +33,22 @@ export async function fetchExchangeRates() {
       },
     });
 
-    const text = response.text;
-    // Tentar extrair JSON caso o modelo retorne texto extra
+    // Extract grounding URLs as per guideline: "If Google Search is used, you MUST ALWAYS extract the URLs from groundingChunks and list them on the web app."
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const sourceUrls = groundingChunks
+      .filter((chunk: any) => chunk.web && chunk.web.uri)
+      .map((chunk: any) => chunk.web.uri);
+
+    // Guideline: Access generated text via the .text property (not a method).
+    const text = response.text || "";
+    // Tentar extrair JSON caso o modelo retorne texto extra ou citações
     const jsonMatch = text.match(/\[.*\]/s);
-    const results = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+    let results = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+    
+    // Attach grounding info to the results if available
+    if (Array.isArray(results) && sourceUrls.length > 0) {
+      results = results.map((r: any) => ({ ...r, sourceUrl: sourceUrls[0] }));
+    }
     
     return Array.isArray(results) && results.length > 0 ? results : getDefaultRates();
   } catch (error) {

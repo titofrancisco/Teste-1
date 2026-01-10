@@ -19,7 +19,8 @@ const ReportsSystem: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
-  const INV_KEY = 'angola_inv_v3';
+  // Correcting storage key to v4
+  const INV_KEY = 'angola_inv_v4';
   const BILL_KEY = 'angola_invoices_final_v1';
 
   useEffect(() => {
@@ -147,7 +148,7 @@ const ReportsSystem: React.FC = () => {
           </div>
           <div className="space-y-6">
             {Object.entries(stats.contractDist).map(([type, count]) => {
-              const perc = getPercentage(count, invoices.filter(i => i.isFinal).length);
+              const perc = getPercentage(count as number, invoices.filter(i => i.isFinal).length);
               return (
                 <div key={type}>
                   <div className="flex justify-between items-center mb-2">
