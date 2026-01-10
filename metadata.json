@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Calculadora de Importação Angola",
+  "description": "Uma aplicação profissional para calcular custos de importação para Angola, taxas alfandegárias e gestão de inventário, com taxas de câmbio em tempo real.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
