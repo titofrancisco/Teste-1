@@ -17,7 +17,8 @@ import {
   Truck,
   ShieldAlert,
   PlusCircle,
-  Box
+  Box,
+  Target
 } from 'lucide-react';
 
 const InventorySystem: React.FC = () => {
@@ -46,7 +47,8 @@ const InventorySystem: React.FC = () => {
     purchasePrice: 0,
     freight: 0,
     customsExpenses: 0,
-    additionalExpenses: 0
+    additionalExpenses: 0,
+    estimatedCost: 0
   });
 
   useEffect(() => {
@@ -130,7 +132,8 @@ const InventorySystem: React.FC = () => {
     setFormData({
       deviceType: '', brand: '', model: '', condition: DeviceCondition.NEW,
       storage: '', color: '', specs: '', purchasePrice: 0,
-      freight: 0, customsExpenses: 0, additionalExpenses: 0
+      freight: 0, customsExpenses: 0, additionalExpenses: 0,
+      estimatedCost: 0
     });
     
     setActiveTab('consult');
@@ -276,7 +279,7 @@ const InventorySystem: React.FC = () => {
             </div>
 
             {/* Bloco Final: Taxas e Custo Total */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">13. Despesas Alfandegárias (Kz)</label>
                 <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
@@ -293,8 +296,16 @@ const InventorySystem: React.FC = () => {
                 </div>
               </div>
 
+              <div>
+                <label className="text-[10px] font-black text-indigo-400 uppercase mb-2 block tracking-widest">16. Custo Previsto (Kz)</label>
+                <div className="flex items-center bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 ring-2 ring-indigo-100/50">
+                  <Target className="w-4 h-4 text-indigo-500 mr-3" />
+                  <input type="number" value={formData.estimatedCost || ''} onChange={e => setFormData({...formData, estimatedCost: Number(e.target.value)})} placeholder="0.00" className="bg-transparent w-full outline-none text-sm font-bold text-indigo-700" />
+                </div>
+              </div>
+
               <div className="bg-indigo-900 rounded-2xl p-4 text-white shadow-lg ring-4 ring-indigo-100">
-                <label className="text-[9px] font-black uppercase text-indigo-300 mb-1 block">15. Custo Total Consolidado</label>
+                <label className="text-[9px] font-black uppercase text-indigo-300 mb-1 block">15. Custo Total Real</label>
                 <div className="text-xl font-black">{formatAOA(finalTotalCost)}</div>
               </div>
             </div>
@@ -316,8 +327,8 @@ const InventorySystem: React.FC = () => {
                   <tr>
                     <th className="p-5">Nº</th>
                     <th className="p-5">Artigo</th>
-                    <th className="p-5">Condição</th>
-                    <th className="p-5 text-right">Inv. Total</th>
+                    <th className="p-5 text-center">C. Previsto</th>
+                    <th className="p-5 text-right">C. Total Real</th>
                     <th className="p-5 text-center">Ações</th>
                   </tr>
                 </thead>
@@ -329,7 +340,9 @@ const InventorySystem: React.FC = () => {
                         <div className="font-black text-slate-900 text-sm uppercase">{item.brand} {item.model}</div>
                         <div className="text-[10px] font-bold text-slate-400 uppercase">{item.deviceType} • {item.storage} • {item.color}</div>
                       </td>
-                      <td className="p-5 text-[10px] font-black text-slate-500 uppercase">{item.condition}</td>
+                      <td className="p-5 text-center">
+                        <div className="text-[10px] font-black text-slate-400 uppercase">{formatAOA(item.estimatedCost || 0)}</div>
+                      </td>
                       <td className="p-5 text-right">
                         <div className="font-black text-indigo-600 text-sm">{formatAOA(item.totalCost)}</div>
                       </td>
