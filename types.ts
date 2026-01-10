@@ -9,9 +9,9 @@ export enum DeviceCondition {
 }
 
 export enum ContractType {
-  ORDER = 'Encomenda',
-  TWO_INSTALLMENTS = 'Duas Prestações',
-  THREE_INSTALLMENTS = 'Três Prestações'
+  ORDER = 'Por encomenda',
+  TWO_INSTALLMENTS = 'Por Duas Prestações',
+  THREE_INSTALLMENTS = 'Por Tres Prestações'
 }
 
 export interface BankRate {
@@ -59,6 +59,7 @@ export interface Invoice {
   productTimestamp: number;
   contractType: ContractType;
   sellingPrice: number;
+  discount?: number;
   isFinal: boolean;
   productDetails: Partial<InventoryItem>;
   adjustedPrice: number;
