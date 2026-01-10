@@ -57,10 +57,15 @@ const InventorySystem: React.FC = () => {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem(INV_KEY);
-    const savedSugg = localStorage.getItem(SUGG_KEY);
-    if (saved) setItems(JSON.parse(saved));
-    if (savedSugg) setSuggestions(JSON.parse(savedSugg));
+    const load = () => {
+      const saved = localStorage.getItem(INV_KEY);
+      const savedSugg = localStorage.getItem(SUGG_KEY);
+      if (saved) setItems(JSON.parse(saved));
+      if (savedSugg) setSuggestions(JSON.parse(savedSugg));
+    };
+    load();
+    window.addEventListener('storage', load);
+    return () => window.removeEventListener('storage', load);
   }, []);
 
   // Lógica de cálculo solicitada (Campo 10 e 12)
@@ -143,6 +148,7 @@ const InventorySystem: React.FC = () => {
     updateSuggestions(formData);
     resetForm();
     setActiveTab('consult');
+    window.dispatchEvent(new Event('storage'));
   };
 
   const resetForm = () => {
@@ -178,6 +184,7 @@ const InventorySystem: React.FC = () => {
       const reindexed = filtered.map((item, idx) => ({ ...item, id: idx + 1 }));
       setItems(reindexed);
       localStorage.setItem(INV_KEY, JSON.stringify(reindexed));
+      window.dispatchEvent(new Event('storage'));
     }
   };
 
@@ -348,7 +355,7 @@ const InventorySystem: React.FC = () => {
           <div className="animate-fadeIn space-y-6" id="stock-report-section">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 print:hidden">
                <div>
-                  <h3 className="font-black text-sm text-slate-400 uppercase tracking-widest">Stock Ativo ({filteredItems.length})</h3>
+                  <h3 className="font-black text-sm text-slate-400 uppercase tracking-widest">Stock Ativo ({filteredItems.filter(i => !i.isSold).length})</h3>
                   <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Gestão e Filtro de Inventário</p>
                </div>
                

@@ -13,7 +13,8 @@ import {
   TicketPercent,
   Calculator,
   Calendar,
-  Edit2
+  Edit2,
+  Clock
 } from 'lucide-react';
 
 const BillingSystem: React.FC = () => {
@@ -41,7 +42,6 @@ const BillingSystem: React.FC = () => {
   }, []);
 
   const availableProducts = useMemo(() => {
-    // Se estiver editando, o produto da fatura atual deve aparecer como disponível na lista para seleção
     return inventory.filter(item => !item.isSold || (editingInvoice && item.timestamp === editingInvoice.productTimestamp));
   }, [inventory, editingInvoice]);
 
@@ -63,6 +63,26 @@ const BillingSystem: React.FC = () => {
     return cleaned.slice(0, 9);
   };
 
+  const calculateInstallments = (total: number, type: ContractType) => {
+    let initial = 0, p1 = 0, p2 = 0, final = 0;
+
+    if (type === ContractType.ORDER) {
+      initial = total * 0.8;
+      final = total * 0.2;
+    } else if (type === ContractType.TWO_INSTALLMENTS) {
+      initial = total * 0.2;
+      p1 = total * 0.4;
+      final = total * 0.4;
+    } else if (type === ContractType.THREE_INSTALLMENTS) {
+      initial = total * 0.25;
+      p1 = total * 0.25;
+      p2 = total * 0.25;
+      final = total * 0.25;
+    }
+
+    return { initial, p1, p2, final };
+  };
+
   const commercialSummary = useMemo(() => {
     const base = formData.sellingPrice;
     let multiplier = 1;
@@ -72,39 +92,24 @@ const BillingSystem: React.FC = () => {
     const priceWithContract = base * multiplier;
     const totalToPay = Math.max(0, priceWithContract - formData.discount);
 
-    let initial = 0, p1 = 0, p2 = 0, final = 0;
-
-    if (formData.contractType === ContractType.ORDER) {
-      initial = totalToPay * 0.8;
-      final = totalToPay * 0.2;
-    } else if (formData.contractType === ContractType.TWO_INSTALLMENTS) {
-      initial = totalToPay * 0.2;
-      p1 = totalToPay * 0.4;
-      final = totalToPay * 0.4;
-    } else if (formData.contractType === ContractType.THREE_INSTALLMENTS) {
-      initial = totalToPay * 0.25;
-      p1 = totalToPay * 0.25;
-      p2 = totalToPay * 0.25;
-      final = totalToPay * 0.25;
-    }
+    const { initial, p1, p2, final } = calculateInstallments(totalToPay, formData.contractType);
 
     return { totalToPay, initial, p1, p2, final };
   }, [formData.sellingPrice, formData.contractType, formData.discount]);
 
-  const cleanOtherProformas = (allInvoices: Invoice[], prodId: number, currentDocId: number) => {
-    return allInvoices.filter(inv => 
-      inv.productTimestamp !== prodId || inv.isFinal || inv.timestamp === currentDocId
-    );
+  const addDays = (dateStr: string, days: number) => {
+    const [day, month, year] = dateStr.split('/').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + days);
+    return date.toLocaleDateString('pt-PT');
   };
 
   const executeIssue = () => {
     const product = inventory.find(p => p.timestamp === formData.productTimestamp);
-    
     let updatedInvoices = [...invoices];
     let updatedInventory = [...inventory];
 
     if (editingInvoice) {
-      // Caso de Edição
       updatedInvoices = invoices.map(inv => {
         if (inv.timestamp === editingInvoice.timestamp) {
           return {
@@ -116,14 +121,11 @@ const BillingSystem: React.FC = () => {
         }
         return inv;
       });
-
-      // Se mudou o estado de final ou o produto, precisamos atualizar o stock
       if (formData.isFinal) {
         updatedInventory = inventory.map(p => p.timestamp === formData.productTimestamp ? { ...p, isSold: true } : p);
-        updatedInvoices = cleanOtherProformas(updatedInvoices, formData.productTimestamp, editingInvoice.timestamp);
+        updatedInvoices = updatedInvoices.filter(inv => inv.productTimestamp !== formData.productTimestamp || inv.isFinal || inv.timestamp === editingInvoice.timestamp);
       }
     } else {
-      // Caso de Novo Registo
       const newInvoice: Invoice = {
         id: invoices.length + 1,
         invoiceNumber: invoices.length + 1,
@@ -134,12 +136,10 @@ const BillingSystem: React.FC = () => {
         date: new Date().toLocaleDateString('pt-PT'),
         timestamp: Date.now()
       };
-
       updatedInvoices = [newInvoice, ...invoices];
-
       if (formData.isFinal) {
         updatedInventory = inventory.map(p => p.timestamp === formData.productTimestamp ? { ...p, isSold: true } : p);
-        updatedInvoices = cleanOtherProformas(updatedInvoices, formData.productTimestamp, newInvoice.timestamp);
+        updatedInvoices = updatedInvoices.filter(inv => inv.productTimestamp !== formData.productTimestamp || inv.isFinal || inv.timestamp === newInvoice.timestamp);
       }
     }
 
@@ -147,7 +147,6 @@ const BillingSystem: React.FC = () => {
     setInventory(updatedInventory);
     localStorage.setItem(BILL_KEY, JSON.stringify(updatedInvoices));
     localStorage.setItem(INV_KEY, JSON.stringify(updatedInventory));
-    
     setFormData({ customerName: '', idNumber: '', phoneNumber: '', productTimestamp: 0, contractType: ContractType.ORDER, sellingPrice: 0, discount: 0, isFinal: false });
     setEditingInvoice(null);
     setShowConfirmIssue(false);
@@ -157,11 +156,8 @@ const BillingSystem: React.FC = () => {
 
   const finalizeProforma = () => {
     if (!proformaToFinalize) return;
-    const updatedInvoices = cleanOtherProformas(
-      invoices.map(inv => inv.timestamp === proformaToFinalize.timestamp ? { ...inv, isFinal: true } : inv),
-      proformaToFinalize.productTimestamp,
-      proformaToFinalize.timestamp
-    );
+    const updatedInvoices = invoices.map(inv => inv.timestamp === proformaToFinalize.timestamp ? { ...inv, isFinal: true } : inv)
+      .filter(inv => inv.productTimestamp !== proformaToFinalize.productTimestamp || inv.isFinal || inv.timestamp === proformaToFinalize.timestamp);
     const updatedInventory = inventory.map(p => p.timestamp === proformaToFinalize.productTimestamp ? { ...p, isSold: true } : p);
     setInvoices(updatedInvoices);
     setInventory(updatedInventory);
@@ -187,15 +183,26 @@ const BillingSystem: React.FC = () => {
   };
 
   const handleDelete = (inv: Invoice) => {
-    if (confirm(`Tem a certeza que deseja eliminar o documento #${inv.invoiceNumber} de ${inv.customerName}? Esta ação é irreversível.`)) {
-      const updated = invoices.filter(i => i.timestamp !== inv.timestamp);
+    if (confirm(`AVISO DE EXCLUSÃO: Tem a certeza que deseja eliminar permanentemente o documento #${inv.invoiceNumber}?`)) {
+      const updatedInvoices = invoices.filter(i => i.timestamp !== inv.timestamp);
       
-      // Se era uma factura final, opcionalmente devolver o item ao stock? 
-      // Manteremos a lógica simples: apenas remover o documento.
+      let wasFinal = inv.isFinal;
+      if (wasFinal) {
+        // Garantir que o bem volta ao stock ativo (isSold: false)
+        const currentInventory = JSON.parse(localStorage.getItem(INV_KEY) || '[]');
+        const updatedInventory = currentInventory.map((p: InventoryItem) => 
+          p.timestamp === inv.productTimestamp ? { ...p, isSold: false } : p
+        );
+        setInventory(updatedInventory);
+        localStorage.setItem(INV_KEY, JSON.stringify(updatedInventory));
+      }
       
-      setInvoices(updated);
-      localStorage.setItem(BILL_KEY, JSON.stringify(updated));
-      alert('Documento excluído com sucesso do sistema.');
+      setInvoices(updatedInvoices);
+      localStorage.setItem(BILL_KEY, JSON.stringify(updatedInvoices));
+      
+      // Notificação de confirmação solicitada
+      alert(`SISTEMA: O documento #${inv.invoiceNumber} foi excluído dos dados. ${wasFinal ? 'O bem alocado foi devolvido ao stock ativo e está agora disponível para nova venda.' : ''}`);
+      
       window.dispatchEvent(new Event('storage'));
     }
   };
@@ -203,6 +210,24 @@ const BillingSystem: React.FC = () => {
   const handlePrint = () => { window.print(); };
 
   const formatAOA = (val: number) => new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(val);
+
+  const invoiceInstallmentPlan = useMemo(() => {
+    if (!selectedInvoice) return [];
+    const { initial, p1, p2, final } = calculateInstallments(selectedInvoice.adjustedPrice, selectedInvoice.contractType);
+    const plan = [];
+    plan.push({ label: 'Pagamento Inicial', amount: initial, date: selectedInvoice.date });
+    if (selectedInvoice.contractType === ContractType.ORDER) {
+      plan.push({ label: 'Pagamento Final', amount: final, date: addDays(selectedInvoice.date, 30) });
+    } else if (selectedInvoice.contractType === ContractType.TWO_INSTALLMENTS) {
+      plan.push({ label: '1ª Prestação', amount: p1, date: addDays(selectedInvoice.date, 30) });
+      plan.push({ label: 'Pagamento Final', amount: final, date: addDays(selectedInvoice.date, 60) });
+    } else if (selectedInvoice.contractType === ContractType.THREE_INSTALLMENTS) {
+      plan.push({ label: '1ª Prestação', amount: p1, date: addDays(selectedInvoice.date, 30) });
+      plan.push({ label: '2ª Prestação', amount: p2, date: addDays(selectedInvoice.date, 60) });
+      plan.push({ label: 'Pagamento Final', amount: final, date: addDays(selectedInvoice.date, 90) });
+    }
+    return plan;
+  }, [selectedInvoice]);
 
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden min-h-[600px]">
@@ -217,45 +242,38 @@ const BillingSystem: React.FC = () => {
         {activeTab === 'record' ? (
           <form onSubmit={e => { 
             e.preventDefault(); 
-            if (formData.productTimestamp === 0) {
-              alert('ERRO: Por favor, selecione primeiro um artigo em stock.');
-              return;
-            }
+            if (formData.productTimestamp === 0) { alert('Erro: Selecione um produto.'); return; }
             setShowConfirmIssue(true); 
           }} className="space-y-8 animate-fadeIn print:hidden">
             {editingInvoice && (
               <div className="flex justify-between items-center bg-amber-50 p-4 rounded-2xl border border-amber-100">
-                <p className="text-xs font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
-                  <Edit2 className="w-4 h-4" /> Editando Documento #{editingInvoice.invoiceNumber}
-                </p>
-                <button type="button" onClick={() => { setEditingInvoice(null); setFormData({ customerName: '', idNumber: '', phoneNumber: '', productTimestamp: 0, contractType: ContractType.ORDER, sellingPrice: 0, discount: 0, isFinal: false }); }} className="text-amber-600 hover:text-amber-800 flex items-center gap-1 text-[10px] font-bold uppercase">
-                  <X className="w-4 h-4" /> Cancelar Edição
-                </button>
+                <p className="text-xs font-black text-amber-600 uppercase tracking-widest flex items-center gap-2"><Edit2 className="w-4 h-4" /> Editando #{editingInvoice.invoiceNumber}</p>
+                <button type="button" onClick={() => { setEditingInvoice(null); setFormData({ customerName: '', idNumber: '', phoneNumber: '', productTimestamp: 0, contractType: ContractType.ORDER, sellingPrice: 0, discount: 0, isFinal: false }); }} className="text-amber-600 hover:text-amber-800 flex items-center gap-1 text-[10px] font-bold uppercase"><X className="w-4 h-4" /> Cancelar</button>
               </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <input type="text" placeholder="Nome do Cliente" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
-                <input type="text" placeholder="B.I. (14 Caracteres)" maxLength={14} value={formData.idNumber} onChange={e => setFormData({...formData, idNumber: e.target.value.toUpperCase()})} required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-mono outline-none focus:ring-2 focus:ring-emerald-500" />
+                <input type="text" placeholder="Nome do Cliente" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none" />
+                <input type="text" placeholder="B.I. (14 Caracteres)" maxLength={14} value={formData.idNumber} onChange={e => setFormData({...formData, idNumber: e.target.value.toUpperCase()})} required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input type="text" placeholder="Telefone (9xx-xxx-xxx)" value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: formatPhone(e.target.value)})} required className="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <input type="text" placeholder="Telefone (9xx-xxx-xxx)" value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: formatPhone(e.target.value)})} required className="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-xl" />
                 </div>
               </div>
               <div className="space-y-4">
-                <select value={formData.productTimestamp} onChange={e => setFormData({...formData, productTimestamp: Number(e.target.value)})} required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+                <select value={formData.productTimestamp} onChange={e => setFormData({...formData, productTimestamp: Number(e.target.value)})} required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl">
                   <option value={0}>Selecione Artigo em Stock...</option>
                   {availableProducts.map(p => <option key={p.timestamp} value={p.timestamp}>{p.brand} {p.model} - {p.storage}</option>)}
                 </select>
                 <div className="grid grid-cols-2 gap-4">
-                  <input type="number" placeholder="Preço Base (Kz)" value={formData.sellingPrice || ''} onChange={e => setFormData({...formData, sellingPrice: Number(e.target.value)})} required className="w-full p-4 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <input type="number" placeholder="Preço Base (Kz)" value={formData.sellingPrice || ''} onChange={e => setFormData({...formData, sellingPrice: Number(e.target.value)})} required className="w-full p-4 bg-white border border-slate-200 rounded-xl font-bold" />
                   <div className="relative">
                     <TicketPercent className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-rose-400" />
-                    <input type="number" placeholder="Desconto (Kz)" value={formData.discount || ''} onChange={e => setFormData({...formData, discount: Number(e.target.value)})} className="w-full p-4 pl-12 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:ring-2 focus:ring-rose-500" />
+                    <input type="number" placeholder="Desconto (Kz)" value={formData.discount || ''} onChange={e => setFormData({...formData, discount: Number(e.target.value)})} className="w-full p-4 pl-12 bg-white border border-slate-200 rounded-xl font-bold" />
                   </div>
                 </div>
-                <select value={formData.contractType} onChange={e => setFormData({...formData, contractType: e.target.value as ContractType})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:ring-2 focus:ring-emerald-500">
+                <select value={formData.contractType} onChange={e => setFormData({...formData, contractType: e.target.value as ContractType})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold">
                   {Object.values(ContractType).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
@@ -265,31 +283,18 @@ const BillingSystem: React.FC = () => {
               <div className="flex justify-between items-center">
                 <h3 className="text-xs font-black text-emerald-900 uppercase tracking-widest flex items-center gap-2"><Calculator className="w-4 h-4" /> Resumo Financeiro</h3>
                 <div className="text-right">
-                  <span className="text-[10px] font-black text-emerald-600 uppercase block">Valor Total a Pagar</span>
+                  <span className="text-[10px] font-black text-emerald-600 uppercase block">Total a Pagar</span>
                   <span className="text-2xl font-black text-emerald-900">{formatAOA(commercialSummary.totalToPay)}</span>
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white p-3 rounded-2xl border border-emerald-100 shadow-sm">
+                <div className="bg-white p-3 rounded-2xl border border-emerald-100 shadow-sm text-center">
                   <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Pag. Inicial</p>
                   <p className="text-xs font-black text-slate-900">{formatAOA(commercialSummary.initial)}</p>
                 </div>
-                {commercialSummary.p1 > 0 && (
-                  <div className="bg-white p-3 rounded-2xl border border-emerald-100 shadow-sm">
-                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">1ª Prestação</p>
-                    <p className="text-xs font-black text-slate-900">{formatAOA(commercialSummary.p1)}</p>
-                  </div>
-                )}
-                {commercialSummary.p2 > 0 && (
-                  <div className="bg-white p-3 rounded-2xl border border-emerald-100 shadow-sm">
-                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">2ª Prestação</p>
-                    <p className="text-xs font-black text-slate-900">{formatAOA(commercialSummary.p2)}</p>
-                  </div>
-                )}
-                <div className="bg-slate-900 p-3 rounded-2xl shadow-lg">
-                  <p className="text-[9px] font-black text-emerald-400 uppercase mb-1">Valor Final</p>
-                  <p className="text-xs font-black text-white">{formatAOA(commercialSummary.final)}</p>
-                </div>
+                {commercialSummary.p1 > 0 && <div className="bg-white p-3 rounded-2xl border border-emerald-100 shadow-sm text-center"><p className="text-[9px] font-black text-slate-400 uppercase">1ª Prestação</p><p className="text-xs font-black">{formatAOA(commercialSummary.p1)}</p></div>}
+                {commercialSummary.p2 > 0 && <div className="bg-white p-3 rounded-2xl border border-emerald-100 shadow-sm text-center"><p className="text-[9px] font-black text-slate-400 uppercase">2ª Prestação</p><p className="text-xs font-black">{formatAOA(commercialSummary.p2)}</p></div>}
+                <div className="bg-slate-900 p-3 rounded-2xl shadow-lg text-center"><p className="text-[9px] font-black text-emerald-400 uppercase">Pag. Final</p><p className="text-xs font-black text-white">{formatAOA(commercialSummary.final)}</p></div>
               </div>
             </div>
 
@@ -297,9 +302,7 @@ const BillingSystem: React.FC = () => {
               <button type="button" onClick={() => setFormData({...formData, isFinal: false})} className={`flex-1 py-4 rounded-xl font-bold text-xs uppercase tracking-widest ${!formData.isFinal ? 'bg-white shadow-sm' : 'text-slate-400'}`}>PROFORMA</button>
               <button type="button" onClick={() => setFormData({...formData, isFinal: true})} className={`flex-1 py-4 rounded-xl font-bold text-xs uppercase tracking-widest ${formData.isFinal ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}>FACTURA FINAL</button>
             </div>
-            <button type="submit" className="w-full p-6 bg-slate-900 text-white rounded-3xl font-black text-lg tracking-widest uppercase hover:opacity-90 transition-opacity">
-              {editingInvoice ? 'SALVAR ALTERAÇÕES' : 'GERAR DOCUMENTO'}
-            </button>
+            <button type="submit" className="w-full p-6 bg-slate-900 text-white rounded-3xl font-black text-lg tracking-widest uppercase">{editingInvoice ? 'SALVAR ALTERAÇÕES' : 'GERAR DOCUMENTO'}</button>
           </form>
         ) : (
           <div className="animate-fadeIn">
@@ -313,24 +316,17 @@ const BillingSystem: React.FC = () => {
                     <tr key={inv.timestamp} className="hover:bg-slate-50">
                       <td className="p-4 font-bold text-sm">#{inv.invoiceNumber}</td>
                       <td className="p-4"><span className={`text-[9px] font-black px-2 py-1 rounded-full ${inv.isFinal ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-500'}`}>{inv.isFinal ? 'FINAL' : 'PROFORMA'}</span></td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">{inv.customerName}</div>
-                        <div className="text-[10px] text-slate-400">{inv.phoneNumber}</div>
-                      </td>
+                      <td className="p-4"><div className="font-bold text-slate-900 text-sm">{inv.customerName}</div><div className="text-[10px] text-slate-400">{inv.phoneNumber}</div></td>
                       <td className="p-4 text-right font-black text-emerald-600 text-sm">{formatAOA(inv.adjustedPrice)}</td>
                       <td className="p-4 flex justify-end gap-2">
-                        <button onClick={() => setSelectedInvoice(inv)} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all" title="Ver/Imprimir"><Printer className="w-4 h-4" /></button>
-                        <button onClick={() => handleEditClick(inv)} className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-600 hover:text-white transition-all" title="Editar"><Edit2 className="w-4 h-4" /></button>
-                        {!inv.isFinal && <button onClick={() => setProformaToFinalize(inv)} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all" title="Finalizar Venda"><ArrowRightCircle className="w-4 h-4" /></button>}
-                        <button onClick={() => handleDelete(inv)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => setSelectedInvoice(inv)} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all"><Printer className="w-4 h-4" /></button>
+                        <button onClick={() => handleEditClick(inv)} className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-600 hover:text-white transition-all"><Edit2 className="w-4 h-4" /></button>
+                        {!inv.isFinal && <button onClick={() => setProformaToFinalize(inv)} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all"><ArrowRightCircle className="w-4 h-4" /></button>}
+                        <button onClick={() => handleDelete(inv)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
                       </td>
                     </tr>
                   ))}
-                  {invoices.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="p-10 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">Nenhum documento emitido até ao momento</td>
-                    </tr>
-                  )}
+                  {invoices.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">Nenhum documento emitido</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -354,7 +350,7 @@ const BillingSystem: React.FC = () => {
              </div>
              <div className="grid grid-cols-2 gap-20 mb-10">
                <div><h4 className="text-[10px] font-black text-slate-400 uppercase border-b pb-1 mb-2">Cliente</h4><p className="text-xl font-black">{selectedInvoice.customerName}</p><p className="text-sm">BI: {selectedInvoice.idNumber}</p><p className="text-sm">Tel: {selectedInvoice.phoneNumber}</p></div>
-               <div className="text-right"><h4 className="text-[10px] font-black text-slate-400 uppercase border-b pb-1 mb-2">Artigo</h4><p className="text-xl font-black">{selectedInvoice.productDetails?.brand} {selectedInvoice.productDetails?.model}</p><p className="text-sm uppercase">{selectedInvoice.productDetails?.storage} • {selectedInvoice.productDetails?.color}</p><p className="text-sm font-bold mt-2">Data: {selectedInvoice.date}</p></div>
+               <div className="text-right"><h4 className="text-[10px] font-black text-slate-400 uppercase border-b pb-1 mb-2">Artigo</h4><p className="text-xl font-black">{selectedInvoice.productDetails?.brand} {selectedInvoice.productDetails?.model}</p><p className="text-sm uppercase">{selectedInvoice.productDetails?.storage} • {selectedInvoice.productDetails?.color}</p><p className="text-sm font-bold mt-2">Data da Factura: {selectedInvoice.date}</p></div>
              </div>
              <div className="border-t-2 border-slate-100 py-6 space-y-2">
                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Detalhes do Contrato</h4>
@@ -362,8 +358,32 @@ const BillingSystem: React.FC = () => {
                <div className="flex justify-between font-bold text-sm"><span>Preço Unitário</span><span>{formatAOA(selectedInvoice.sellingPrice)}</span></div>
                {selectedInvoice.discount && selectedInvoice.discount > 0 && <div className="flex justify-between font-bold text-sm text-rose-500"><span>Desconto Aplicado</span><span>- {formatAOA(selectedInvoice.discount)}</span></div>}
              </div>
+
+             {selectedInvoice.isFinal && (
+               <div className="mt-8 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                 <h4 className="text-[10px] font-black text-slate-900 uppercase mb-4 tracking-widest flex items-center gap-2"><Clock className="w-4 h-4" /> Plano de Pagamentos e Vencimentos</h4>
+                 <div className="grid grid-cols-3 gap-4 border-b border-slate-200 pb-2 mb-2 text-[10px] font-black text-slate-400 uppercase">
+                    <span>Descrição da Parcela</span>
+                    <span className="text-center">Data de Vencimento</span>
+                    <span className="text-right">Valor em Kz</span>
+                 </div>
+                 {invoiceInstallmentPlan.map((step, idx) => (
+                   <div key={idx} className="grid grid-cols-3 gap-4 py-3 border-b border-slate-100 last:border-none text-xs">
+                     <span className="font-bold text-slate-700">{step.label}</span>
+                     <span className="text-center font-black text-slate-900">{step.date}</span>
+                     <span className="text-right font-black text-emerald-600">{formatAOA(step.amount)}</span>
+                   </div>
+                 ))}
+                 <div className="mt-4 pt-4 border-t-2 border-slate-900 flex justify-between items-center">
+                    <span className="text-[10px] font-black uppercase text-slate-900">Total Acordado no Contrato</span>
+                    <span className="text-lg font-black">{formatAOA(selectedInvoice.adjustedPrice)}</span>
+                 </div>
+                 <p className="mt-4 text-[9px] text-slate-400 italic leading-relaxed">Nota: O pagamento inicial deve ser efectuado na data de emissão deste documento. As prestações seguintes vencem sucessivamente a cada 30 dias após o pagamento anterior.</p>
+               </div>
+             )}
+
              <div className="mt-10 pt-10 border-t-4 border-slate-900 flex justify-between items-end">
-               <div><p className="text-[10px] font-black uppercase text-slate-400">Total Geral do Documento</p><p className="text-4xl font-black">{formatAOA(selectedInvoice.adjustedPrice)}</p></div>
+               <div><p className="text-[10px] font-black uppercase text-slate-400">Total Líquido do Documento</p><p className="text-4xl font-black">{formatAOA(selectedInvoice.adjustedPrice)}</p></div>
              </div>
              <div className="mt-32 grid grid-cols-2 gap-40 text-center">
                <div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-xs">Assinatura Cliente</div>
@@ -378,9 +398,9 @@ const BillingSystem: React.FC = () => {
           <div className="bg-white w-full max-w-md rounded-3xl p-8 text-center shadow-2xl">
              <ShieldCheck className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
              <h3 className="text-xl font-black uppercase mb-2">Finalizar Venda?</h3>
-             <p className="text-slate-500 text-sm mb-6">Ao finalizar, o stock será bloqueado e todas as outras proformas deste produto serão eliminadas automaticamente.</p>
+             <p className="text-slate-500 text-sm mb-6">Confirmar finalização e bloqueio do stock?</p>
              <div className="flex flex-col gap-2">
-               <button onClick={finalizeProforma} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black">CONFIRMAR E LIMPAR STOCK</button>
+               <button onClick={finalizeProforma} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black">CONFIRMAR</button>
                <button onClick={() => setProformaToFinalize(null)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold">CANCELAR</button>
              </div>
           </div>
@@ -391,10 +411,10 @@ const BillingSystem: React.FC = () => {
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[500] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-3xl p-8 text-center shadow-2xl">
              <AlertCircle className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
-             <h3 className="text-xl font-black uppercase mb-2">{formData.isFinal ? (editingInvoice ? 'Actualizar Factura Final?' : 'Emitir Factura Final?') : (editingInvoice ? 'Actualizar Proforma?' : 'Guardar Proforma?')}</h3>
+             <h3 className="text-xl font-black uppercase mb-2">Confirmar Acção?</h3>
              <div className="flex flex-col gap-2">
                <button onClick={executeIssue} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black">CONFIRMAR</button>
-               <button onClick={() => setShowConfirmIssue(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold">REVISAR</button>
+               <button onClick={() => setShowConfirmIssue(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold">VOLTAR</button>
              </div>
           </div>
         </div>
