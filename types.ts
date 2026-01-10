@@ -18,31 +18,31 @@ export interface BankRate {
   bank: string;
   rate: number;
   lastUpdate: string;
-  sourceUrl?: string; // Campo para armazenar a URL de grounding do Google Search
+  publishedAt?: string; // Data/Hora real no site do banco
+  sourceUrl?: string;
 }
 
 export interface InventoryItem {
-  id: number; // Campo 1: Numeração Automática
-  deviceType: string; // Campo 2
-  brand: string; // Campo 3
-  model: string; // Campo 4
-  condition: DeviceCondition; // Campo 5
-  storage: string; // Campo 6
-  color: string; // Campo 7
-  specs: string; // Campo 8
-  purchasePrice: number; // Campo 9
-  totalPurchasePrice: number; // Campo 10 (Calculado)
-  freight: number; // Campo 11
-  totalFreight: number; // Campo 12 (Calculado)
-  customsExpenses: number; // Campo 13
-  additionalExpenses: number; // Campo 14
-  totalCost: number; // Campo 15: Custo Total Real (Calculado)
+  id: number;
+  deviceType: string;
+  brand: string;
+  model: string;
+  condition: DeviceCondition;
+  storage: string;
+  color: string;
+  specs: string;
+  purchasePrice: number;
+  totalPurchasePrice: number;
+  freight: number;
+  totalFreight: number;
+  customsExpenses: number;
+  additionalExpenses: number;
+  totalCost: number;
   timestamp: number;
   dateStr: string;
   isSold?: boolean;
 }
 
-// Interface para prestações de pagamento
 export interface PaymentInstallment {
   number: number;
   dueDate: string;
@@ -50,7 +50,6 @@ export interface PaymentInstallment {
   status: 'Pendente' | 'Pago';
 }
 
-// Interface para documentos de facturação
 export interface Invoice {
   id: number;
   invoiceNumber: number;
@@ -70,8 +69,8 @@ export interface Invoice {
 
 export interface SuggestionStore {
   deviceTypes: string[];
-  brands: Record<string, string[]>; // Tipo -> [Marcas]
-  models: Record<string, string[]>; // Marca -> [Modelos]
+  brands: Record<string, string[]>;
+  models: Record<string, string[]>;
   storages: string[];
   colors: string[];
 }
