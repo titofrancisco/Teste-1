@@ -63,6 +63,8 @@ export interface PaymentReceipt {
   date: string;
   timestamp: number;
   invoiceNumber: number;
+  invoiceTimestamp: number; // Referência para reversão
+  installmentNumber: number; // Referência para reversão
   installmentLabel: string;
   productInfo: string;
 }

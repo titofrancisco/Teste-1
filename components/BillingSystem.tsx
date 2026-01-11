@@ -146,7 +146,7 @@ const BillingSystem: React.FC = () => {
             invoiceNumber: newInvoiceNumber,
             productDetails: product || {},
             adjustedPrice: commercialSummary.totalToPay,
-            installments: formData.isFinal ? generateInstallmentsList(commercialSummary.totalToPay, formData.contractType, today) : []
+            installments: generateInstallmentsList(commercialSummary.totalToPay, formData.contractType, today)
           };
         }
         return inv;
@@ -159,7 +159,7 @@ const BillingSystem: React.FC = () => {
         ...formData,
         productDetails: product || {},
         adjustedPrice: commercialSummary.totalToPay,
-        installments: formData.isFinal ? generateInstallmentsList(commercialSummary.totalToPay, formData.contractType, today) : [],
+        installments: generateInstallmentsList(commercialSummary.totalToPay, formData.contractType, today),
         date: today,
         timestamp: Date.now(),
         isConverted: false
@@ -220,7 +220,8 @@ const BillingSystem: React.FC = () => {
 
     const updatedInvoices = invoices.map(inv => {
       if (inv.timestamp === invTimestamp) {
-        const updatedInsts = inv.installments.map(inst => {
+        // Fix: Explicitly type updatedInsts as PaymentInstallment[] and use 'as const' for status
+        const updatedInsts: PaymentInstallment[] = inv.installments.map(inst => {
           if (inst.number === instNumber) {
             const receiptID = `REC-${inv.invoiceNumber}-${inst.number}`;
             generatedReceipt = {
@@ -233,10 +234,12 @@ const BillingSystem: React.FC = () => {
               date: today,
               timestamp: Date.now(),
               invoiceNumber: inv.invoiceNumber,
+              invoiceTimestamp: inv.timestamp,
+              installmentNumber: inst.number,
               installmentLabel: inst.label,
               productInfo: `${inv.productDetails?.brand} ${inv.productDetails?.model}`
             };
-            return { ...inst, status: 'Pago', paymentDate: today, receiptNumber: receiptID };
+            return { ...inst, status: 'Pago' as const, paymentDate: today, receiptNumber: receiptID };
           }
           return inst;
         });
@@ -290,10 +293,34 @@ const BillingSystem: React.FC = () => {
   };
 
   const handleDeleteReceipt = (rec: PaymentReceipt) => {
-    if (confirm(`AVISO: Eliminar permanentemente o recibo ${rec.receiptNumber}?`)) {
+    if (confirm(`AVISO: Eliminar o recibo ${rec.receiptNumber}? O pagamento correspondente será reaberto na fatura de origem.`)) {
+      // 1. Remover o recibo
       const updatedReceipts = receipts.filter(r => r.timestamp !== rec.timestamp);
+      
+      // 2. Reverter o status do pagamento na fatura original
+      const updatedInvoices = invoices.map(inv => {
+        if (inv.timestamp === rec.invoiceTimestamp) {
+          // Fix: Explicitly type updatedInsts as PaymentInstallment[] and use 'as const' for status
+          const updatedInsts: PaymentInstallment[] = inv.installments.map(inst => {
+            if (inst.number === rec.installmentNumber) {
+              return { ...inst, status: 'Pendente' as const, paymentDate: undefined, receiptNumber: undefined };
+            }
+            return inst;
+          });
+          const updatedInv = { ...inv, installments: updatedInsts };
+          // Se a fatura estiver aberta na modal, atualizar ela também
+          if (selectedInvoice && selectedInvoice.timestamp === rec.invoiceTimestamp) {
+            setSelectedInvoice(updatedInv);
+          }
+          return updatedInv;
+        }
+        return inv;
+      });
+
       setReceipts(updatedReceipts);
+      setInvoices(updatedInvoices);
       localStorage.setItem(REC_KEY, JSON.stringify(updatedReceipts));
+      localStorage.setItem(BILL_KEY, JSON.stringify(updatedInvoices));
       window.dispatchEvent(new Event('storage'));
     }
   };
@@ -451,9 +478,9 @@ const BillingSystem: React.FC = () => {
                <div className="text-right"><h4 className="text-[10px] font-black text-slate-400 uppercase border-b pb-1 mb-2">Artigo</h4><p className="text-xl font-black uppercase">{selectedInvoice.productDetails?.brand} {selectedInvoice.productDetails?.model}</p><p className="text-sm uppercase">{selectedInvoice.productDetails?.storage} • {selectedInvoice.productDetails?.color}</p><p className="text-sm font-bold mt-2 text-indigo-600">Emissão: {selectedInvoice.date}</p></div>
              </div>
 
-             {selectedInvoice.isFinal && selectedInvoice.installments && (
+             {selectedInvoice.installments && selectedInvoice.installments.length > 0 && (
                <div className="mt-8 bg-slate-50 p-6 rounded-3xl border border-slate-200">
-                 <h4 className="text-[10px] font-black text-slate-900 uppercase mb-4 tracking-widest flex items-center gap-2"><Clock className="w-4 h-4" /> Controlo de Prestações</h4>
+                 <h4 className="text-[10px] font-black text-slate-900 uppercase mb-4 tracking-widest flex items-center gap-2"><Clock className="w-4 h-4" /> Plano de Prestações</h4>
                  <div className="space-y-2">
                    {selectedInvoice.installments.map((inst) => (
                      <div key={inst.number} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100">
@@ -496,7 +523,7 @@ const BillingSystem: React.FC = () => {
              </div>
              <div className="mt-32 grid grid-cols-2 gap-40 text-center">
                <div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-xs">Assinatura Cliente</div>
-               <div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-xs">Autorizado por</div>
+               <div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-xs">Tech Import Angola</div>
              </div>
           </div>
         </div>
