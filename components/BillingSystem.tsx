@@ -99,7 +99,6 @@ const BillingSystem: React.FC = () => {
     return date.toLocaleDateString('pt-PT');
   };
 
-  // Função para obter o próximo número sequencial para Proforma ou Final
   const getNextDocumentNumber = (isFinal: boolean, currentInvoices: Invoice[]) => {
     const filtered = currentInvoices.filter(inv => inv.isFinal === isFinal);
     if (filtered.length === 0) return 1;
@@ -115,15 +114,10 @@ const BillingSystem: React.FC = () => {
     if (editingInvoice) {
       updatedInvoices = invoices.map(inv => {
         if (inv.timestamp === editingInvoice.timestamp) {
-          // Se mudou de Proforma para Final, ganha novo número na sequência Final
           let newInvoiceNumber = inv.invoiceNumber;
           if (!inv.isFinal && formData.isFinal) {
             newInvoiceNumber = getNextDocumentNumber(true, invoices);
-          } else if (inv.isFinal && !formData.isFinal) {
-             // Caso raríssimo de voltar para Proforma (reverter número)
-             newInvoiceNumber = getNextDocumentNumber(false, invoices);
           }
-
           return {
             ...inv,
             ...formData,
@@ -134,11 +128,6 @@ const BillingSystem: React.FC = () => {
         }
         return inv;
       });
-      if (formData.isFinal) {
-        updatedInventory = inventory.map(p => p.timestamp === formData.productTimestamp ? { ...p, isSold: true } : p);
-        // Remove proformas antigas do mesmo produto se este agora é finalizado
-        updatedInvoices = updatedInvoices.filter(inv => inv.productTimestamp !== formData.productTimestamp || inv.isFinal || inv.timestamp === editingInvoice.timestamp);
-      }
     } else {
       const docNumber = getNextDocumentNumber(formData.isFinal, invoices);
       const newInvoice: Invoice = {
@@ -152,10 +141,15 @@ const BillingSystem: React.FC = () => {
         timestamp: Date.now()
       };
       updatedInvoices = [newInvoice, ...invoices];
-      if (formData.isFinal) {
-        updatedInventory = inventory.map(p => p.timestamp === formData.productTimestamp ? { ...p, isSold: true } : p);
-        updatedInvoices = updatedInvoices.filter(inv => inv.productTimestamp !== formData.productTimestamp || inv.isFinal || inv.timestamp === newInvoice.timestamp);
-      }
+    }
+
+    // REGRA CRÍTICA: Se o documento é FINAL, removemos TODAS as Proformas deste produto
+    if (formData.isFinal) {
+      updatedInventory = inventory.map(p => p.timestamp === formData.productTimestamp ? { ...p, isSold: true } : p);
+      updatedInvoices = updatedInvoices.filter(inv => 
+        // Mantém se: É de outro produto OU é Factura Final (incluindo a que acabamos de editar/criar)
+        inv.productTimestamp !== formData.productTimestamp || inv.isFinal
+      );
     }
 
     setInvoices(updatedInvoices);
@@ -172,12 +166,17 @@ const BillingSystem: React.FC = () => {
   const finalizeProforma = () => {
     if (!proformaToFinalize) return;
     const nextFinalNum = getNextDocumentNumber(true, invoices);
+    const today = new Date().toLocaleDateString('pt-PT');
     
+    // Converte a proforma específica e remove duplicatas
     const updatedInvoices = invoices.map(inv => 
       inv.timestamp === proformaToFinalize.timestamp 
-      ? { ...inv, isFinal: true, invoiceNumber: nextFinalNum } 
+      ? { ...inv, isFinal: true, invoiceNumber: nextFinalNum, date: today } 
       : inv
-    ).filter(inv => inv.productTimestamp !== proformaToFinalize.productTimestamp || inv.isFinal);
+    ).filter(inv => 
+      // Filtro para garantir que proformas remanescentes do mesmo produto sejam eliminadas
+      inv.productTimestamp !== proformaToFinalize.productTimestamp || inv.isFinal
+    );
     
     const updatedInventory = inventory.map(p => p.timestamp === proformaToFinalize.productTimestamp ? { ...p, isSold: true } : p);
     
@@ -319,8 +318,8 @@ const BillingSystem: React.FC = () => {
               <table className="w-full text-left">
                 <thead className="bg-slate-900 text-[10px] font-black uppercase text-slate-400">
                   <tr>
-                    <th className="p-4">Nº</th> {/* Número de Ordem Sequencial Dinâmico */}
-                    <th className="p-4">Nº Doc</th> {/* Número Fixo do Documento (Proforma/Final) */}
+                    <th className="p-4">Nº</th>
+                    <th className="p-4">Nº Doc</th>
                     <th className="p-4">Tipo</th>
                     <th className="p-4">Cliente / Tel</th>
                     <th className="p-4 text-right">Valor Total</th>
