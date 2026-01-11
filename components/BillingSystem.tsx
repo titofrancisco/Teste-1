@@ -146,7 +146,6 @@ const BillingSystem: React.FC = () => {
 
     if (formData.isFinal) {
       updatedInventory = inventory.map(p => p.timestamp === formData.productTimestamp ? { ...p, isSold: true } : p);
-      // Removido o filtro que apagava proformas para manter o histórico como solicitado
     }
 
     setInvoices(updatedInvoices);
@@ -165,7 +164,6 @@ const BillingSystem: React.FC = () => {
     const nextFinalNum = getNextDocumentNumber(true, invoices);
     const today = new Date().toLocaleDateString('pt-PT');
     
-    // 1. Criar a nova Factura Final
     const newFinalInvoice: Invoice = {
       ...proformaToFinalize,
       id: Date.now(),
@@ -176,7 +174,6 @@ const BillingSystem: React.FC = () => {
       date: today
     };
 
-    // 2. Marcar a Proforma original como convertida para desativar o botão
     const updatedInvoices = [newFinalInvoice, ...invoices.map(inv => 
       inv.timestamp === proformaToFinalize.timestamp 
       ? { ...inv, isConverted: true } 
@@ -368,7 +365,7 @@ const BillingSystem: React.FC = () => {
             <button onClick={() => window.print()} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black shadow-xl flex items-center gap-2"><Printer className="w-5 h-5" /> IMPRIMIR PDF</button>
             <button onClick={() => setSelectedInvoice(null)} className="bg-red-600 text-white p-3 rounded-xl shadow-xl"><X className="w-6 h-6" /></button>
           </div>
-          <div id="invoice-to-print" className="bg-white w-full max-w-4xl min-h-screen p-10 md:p-20 shadow-2xl print:shadow-none print:m-0 print:p-8">
+          <div id="invoice-to-print" className="bg-white w-full max-w-4xl min-h-screen p-10 md:p-20 shadow-2xl print:shadow-none print:m-0 print:p-10">
              <div className="flex justify-between items-center border-b-8 border-indigo-600 pb-10 mb-10">
                <div><h1 className="text-4xl font-[1000] uppercase tracking-tighter text-indigo-600">TECHIMPORT</h1><p className="text-[12px] font-black text-slate-900 uppercase tracking-[0.5em] mt-1">ANGOLA</p></div>
                <div className="text-right">
@@ -449,17 +446,43 @@ const BillingSystem: React.FC = () => {
       )}
 
       <style>{`
+        @page {
+          size: A4;
+          margin: 0;
+        }
         @media print {
-          body * { visibility: hidden !important; }
-          #invoice-to-print, #invoice-to-print * { visibility: visible !important; }
+          html, body {
+            width: 210mm;
+            height: 297mm;
+            background: #fff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden;
+          }
+          body * { 
+            visibility: hidden !important; 
+          }
+          #invoice-to-print, #invoice-to-print * { 
+            visibility: visible !important; 
+          }
           #invoice-to-print { 
-            position: absolute !important; 
+            position: fixed !important; 
             left: 0 !important; 
             top: 0 !important; 
-            width: 100% !important; 
+            width: 210mm !important; 
+            min-height: 297mm !important;
             margin: 0 !important; 
-            padding: 40px !important;
+            padding: 20mm !important;
             border: none !important;
+            box-shadow: none !important;
+            z-index: 9999 !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* Remove elementos indesejados na impressão mobile */
+          .fixed, .absolute, .print\:hidden {
+            display: none !important;
           }
         }
       `}</style>
