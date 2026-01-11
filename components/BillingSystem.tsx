@@ -127,6 +127,15 @@ const BillingSystem: React.FC = () => {
     return maxNum + 1;
   };
 
+  const getNextReceiptNumber = (currentReceipts: PaymentReceipt[]) => {
+    if (currentReceipts.length === 0) return 1;
+    const numbers = currentReceipts.map(r => {
+      const match = r.receiptNumber.match(/REC-(\d+)/);
+      return match ? parseInt(match[1]) : 0;
+    });
+    return Math.max(...numbers) + 1;
+  };
+
   const executeIssue = () => {
     const product = inventory.find(p => p.timestamp === formData.productTimestamp);
     let updatedInvoices = [...invoices];
@@ -217,13 +226,13 @@ const BillingSystem: React.FC = () => {
   const confirmPayment = (invTimestamp: number, instNumber: number) => {
     const today = new Date().toLocaleDateString('pt-PT');
     let generatedReceipt: PaymentReceipt | null = null;
+    const nextRecNum = getNextReceiptNumber(receipts);
 
     const updatedInvoices = invoices.map(inv => {
       if (inv.timestamp === invTimestamp) {
-        // Fix: Explicitly type updatedInsts as PaymentInstallment[] and use 'as const' for status
         const updatedInsts: PaymentInstallment[] = inv.installments.map(inst => {
           if (inst.number === instNumber) {
-            const receiptID = `REC-${inv.invoiceNumber}-${inst.number}`;
+            const receiptID = `REC-${nextRecNum}`;
             generatedReceipt = {
               id: Date.now(),
               receiptNumber: receiptID,
@@ -294,13 +303,9 @@ const BillingSystem: React.FC = () => {
 
   const handleDeleteReceipt = (rec: PaymentReceipt) => {
     if (confirm(`AVISO: Eliminar o recibo ${rec.receiptNumber}? O pagamento correspondente será reaberto na fatura de origem.`)) {
-      // 1. Remover o recibo
       const updatedReceipts = receipts.filter(r => r.timestamp !== rec.timestamp);
-      
-      // 2. Reverter o status do pagamento na fatura original
       const updatedInvoices = invoices.map(inv => {
         if (inv.timestamp === rec.invoiceTimestamp) {
-          // Fix: Explicitly type updatedInsts as PaymentInstallment[] and use 'as const' for status
           const updatedInsts: PaymentInstallment[] = inv.installments.map(inst => {
             if (inst.number === rec.installmentNumber) {
               return { ...inst, status: 'Pendente' as const, paymentDate: undefined, receiptNumber: undefined };
@@ -308,7 +313,6 @@ const BillingSystem: React.FC = () => {
             return inst;
           });
           const updatedInv = { ...inv, installments: updatedInsts };
-          // Se a fatura estiver aberta na modal, atualizar ela também
           if (selectedInvoice && selectedInvoice.timestamp === rec.invoiceTimestamp) {
             setSelectedInvoice(updatedInv);
           }
@@ -480,7 +484,9 @@ const BillingSystem: React.FC = () => {
 
              {selectedInvoice.installments && selectedInvoice.installments.length > 0 && (
                <div className="mt-8 bg-slate-50 p-6 rounded-3xl border border-slate-200">
-                 <h4 className="text-[10px] font-black text-slate-900 uppercase mb-4 tracking-widest flex items-center gap-2"><Clock className="w-4 h-4" /> Plano de Prestações</h4>
+                 <h4 className="text-[10px] font-black text-slate-900 uppercase mb-4 tracking-widest flex items-center gap-2">
+                    <Clock className="w-4 h-4" /> {selectedInvoice.isFinal ? 'Plano de Prestações Ativo' : 'Simulação de Plano de Prestações'}
+                 </h4>
                  <div className="space-y-2">
                    {selectedInvoice.installments.map((inst) => (
                      <div key={inst.number} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100">
@@ -501,14 +507,18 @@ const BillingSystem: React.FC = () => {
                               </p>
                            </div>
                            <div className="print:hidden">
-                              {inst.status === 'Pago' ? (
-                                <span className="text-[10px] font-black text-emerald-600 uppercase flex items-center gap-1">
-                                  <FileText className="w-3 h-3" /> Liquidado
-                                </span>
+                              {selectedInvoice.isFinal ? (
+                                inst.status === 'Pago' ? (
+                                  <span className="text-[10px] font-black text-emerald-600 uppercase flex items-center gap-1">
+                                    <FileText className="w-3 h-3" /> Liquidado
+                                  </span>
+                                ) : (
+                                  <button onClick={() => confirmPayment(selectedInvoice.timestamp, inst.number)} className="bg-emerald-600 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-1 hover:bg-emerald-700 transition-all shadow-md active:scale-95">
+                                    <FileCheck className="w-3.5 h-3.5" /> Confirmar
+                                  </button>
+                                )
                               ) : (
-                                <button onClick={() => confirmPayment(selectedInvoice.timestamp, inst.number)} className="bg-emerald-600 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-1 hover:bg-emerald-700">
-                                  <FileCheck className="w-3.5 h-3.5" /> Confirmar Pagamento
-                                </button>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase italic">Apenas Factura Final</span>
                               )}
                            </div>
                         </div>
