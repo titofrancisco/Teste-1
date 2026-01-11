@@ -45,9 +45,26 @@ export interface InventoryItem {
 
 export interface PaymentInstallment {
   number: number;
+  label: string;
   dueDate: string;
   amount: number;
   status: 'Pendente' | 'Pago';
+  paymentDate?: string;
+  receiptNumber?: string;
+}
+
+export interface PaymentReceipt {
+  id: number;
+  receiptNumber: string;
+  customerName: string;
+  idNumber: string;
+  phoneNumber: string;
+  amount: number;
+  date: string;
+  timestamp: number;
+  invoiceNumber: number;
+  installmentLabel: string;
+  productInfo: string;
 }
 
 export interface Invoice {
