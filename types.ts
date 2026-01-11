@@ -61,6 +61,7 @@ export interface Invoice {
   sellingPrice: number;
   discount?: number;
   isFinal: boolean;
+  isConverted?: boolean; // Indica se a proforma já gerou uma fatura final
   productDetails: Partial<InventoryItem>;
   adjustedPrice: number;
   installments: PaymentInstallment[];

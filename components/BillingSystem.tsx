@@ -138,18 +138,15 @@ const BillingSystem: React.FC = () => {
         adjustedPrice: commercialSummary.totalToPay,
         installments: [],
         date: new Date().toLocaleDateString('pt-PT'),
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        isConverted: false
       };
       updatedInvoices = [newInvoice, ...invoices];
     }
 
-    // REGRA CRÍTICA: Se o documento é FINAL, removemos TODAS as Proformas deste produto
     if (formData.isFinal) {
       updatedInventory = inventory.map(p => p.timestamp === formData.productTimestamp ? { ...p, isSold: true } : p);
-      updatedInvoices = updatedInvoices.filter(inv => 
-        // Mantém se: É de outro produto OU é Factura Final (incluindo a que acabamos de editar/criar)
-        inv.productTimestamp !== formData.productTimestamp || inv.isFinal
-      );
+      // Removido o filtro que apagava proformas para manter o histórico como solicitado
     }
 
     setInvoices(updatedInvoices);
@@ -168,15 +165,23 @@ const BillingSystem: React.FC = () => {
     const nextFinalNum = getNextDocumentNumber(true, invoices);
     const today = new Date().toLocaleDateString('pt-PT');
     
-    // Converte a proforma específica e remove duplicatas
-    const updatedInvoices = invoices.map(inv => 
+    // 1. Criar a nova Factura Final
+    const newFinalInvoice: Invoice = {
+      ...proformaToFinalize,
+      id: Date.now(),
+      timestamp: Date.now(),
+      isFinal: true,
+      isConverted: false,
+      invoiceNumber: nextFinalNum,
+      date: today
+    };
+
+    // 2. Marcar a Proforma original como convertida para desativar o botão
+    const updatedInvoices = [newFinalInvoice, ...invoices.map(inv => 
       inv.timestamp === proformaToFinalize.timestamp 
-      ? { ...inv, isFinal: true, invoiceNumber: nextFinalNum, date: today } 
+      ? { ...inv, isConverted: true } 
       : inv
-    ).filter(inv => 
-      // Filtro para garantir que proformas remanescentes do mesmo produto sejam eliminadas
-      inv.productTimestamp !== proformaToFinalize.productTimestamp || inv.isFinal
-    );
+    )];
     
     const updatedInventory = inventory.map(p => p.timestamp === proformaToFinalize.productTimestamp ? { ...p, isSold: true } : p);
     
@@ -328,7 +333,7 @@ const BillingSystem: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {invoices.map((inv, index) => (
-                    <tr key={inv.timestamp} className="hover:bg-slate-50">
+                    <tr key={inv.timestamp} className="hover:bg-slate-50 transition-colors">
                       <td className="p-4 font-black text-indigo-600 text-sm">{index + 1}</td>
                       <td className="p-4 font-bold text-sm">#{inv.invoiceNumber}</td>
                       <td className="p-4"><span className={`text-[9px] font-black px-2 py-1 rounded-full ${inv.isFinal ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-500'}`}>{inv.isFinal ? 'FINAL' : 'PROFORMA'}</span></td>
@@ -337,7 +342,15 @@ const BillingSystem: React.FC = () => {
                       <td className="p-4 flex justify-end gap-2">
                         <button onClick={() => setSelectedInvoice(inv)} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all"><Printer className="w-4 h-4" /></button>
                         <button onClick={() => handleEditClick(inv)} className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-600 hover:text-white transition-all"><Edit2 className="w-4 h-4" /></button>
-                        {!inv.isFinal && <button onClick={() => setProformaToFinalize(inv)} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all"><ArrowRightCircle className="w-4 h-4" /></button>}
+                        {!inv.isFinal && (
+                          <button 
+                            onClick={() => !inv.isConverted && setProformaToFinalize(inv)} 
+                            className={`p-2 rounded-lg transition-all ${inv.isConverted ? 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-50' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`}
+                            disabled={inv.isConverted}
+                          >
+                            <ArrowRightCircle className="w-4 h-4" />
+                          </button>
+                        )}
                         <button onClick={() => handleDelete(inv)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
                       </td>
                     </tr>
@@ -412,7 +425,7 @@ const BillingSystem: React.FC = () => {
           <div className="bg-white w-full max-w-md rounded-3xl p-8 text-center shadow-2xl">
              <ShieldCheck className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
              <h3 className="text-xl font-black uppercase mb-2">Finalizar Venda?</h3>
-             <p className="text-slate-500 text-sm mb-6">Esta Proforma será convertida em Factura Final e o item será marcado como vendido no inventário.</p>
+             <p className="text-slate-500 text-sm mb-6">Esta Proforma será mantida e uma nova Factura Final será gerada. O item será marcado como vendido.</p>
              <div className="flex flex-col gap-2">
                <button onClick={finalizeProforma} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black">CONFIRMAR E GERAR FACTURA</button>
                <button onClick={() => setProformaToFinalize(null)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold">CANCELAR</button>
