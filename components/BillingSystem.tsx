@@ -65,7 +65,6 @@ const BillingSystem: React.FC = () => {
 
   const calculateInstallments = (total: number, type: ContractType) => {
     let initial = 0, p1 = 0, p2 = 0, final = 0;
-
     if (type === ContractType.ORDER) {
       initial = total * 0.8;
       final = total * 0.2;
@@ -79,7 +78,6 @@ const BillingSystem: React.FC = () => {
       p2 = total * 0.25;
       final = total * 0.25;
     }
-
     return { initial, p1, p2, final };
   };
 
@@ -88,12 +86,9 @@ const BillingSystem: React.FC = () => {
     let multiplier = 1;
     if (formData.contractType === ContractType.TWO_INSTALLMENTS) multiplier = 1.07;
     if (formData.contractType === ContractType.THREE_INSTALLMENTS) multiplier = 1.15;
-
     const priceWithContract = base * multiplier;
     const totalToPay = Math.max(0, priceWithContract - formData.discount);
-
     const { initial, p1, p2, final } = calculateInstallments(totalToPay, formData.contractType);
-
     return { totalToPay, initial, p1, p2, final };
   }, [formData.sellingPrice, formData.contractType, formData.discount]);
 
@@ -104,6 +99,14 @@ const BillingSystem: React.FC = () => {
     return date.toLocaleDateString('pt-PT');
   };
 
+  // Função para obter o próximo número sequencial para Proforma ou Final
+  const getNextDocumentNumber = (isFinal: boolean, currentInvoices: Invoice[]) => {
+    const filtered = currentInvoices.filter(inv => inv.isFinal === isFinal);
+    if (filtered.length === 0) return 1;
+    const maxNum = Math.max(...filtered.map(inv => inv.invoiceNumber));
+    return maxNum + 1;
+  };
+
   const executeIssue = () => {
     const product = inventory.find(p => p.timestamp === formData.productTimestamp);
     let updatedInvoices = [...invoices];
@@ -112,9 +115,19 @@ const BillingSystem: React.FC = () => {
     if (editingInvoice) {
       updatedInvoices = invoices.map(inv => {
         if (inv.timestamp === editingInvoice.timestamp) {
+          // Se mudou de Proforma para Final, ganha novo número na sequência Final
+          let newInvoiceNumber = inv.invoiceNumber;
+          if (!inv.isFinal && formData.isFinal) {
+            newInvoiceNumber = getNextDocumentNumber(true, invoices);
+          } else if (inv.isFinal && !formData.isFinal) {
+             // Caso raríssimo de voltar para Proforma (reverter número)
+             newInvoiceNumber = getNextDocumentNumber(false, invoices);
+          }
+
           return {
             ...inv,
             ...formData,
+            invoiceNumber: newInvoiceNumber,
             productDetails: product || {},
             adjustedPrice: commercialSummary.totalToPay
           };
@@ -123,12 +136,14 @@ const BillingSystem: React.FC = () => {
       });
       if (formData.isFinal) {
         updatedInventory = inventory.map(p => p.timestamp === formData.productTimestamp ? { ...p, isSold: true } : p);
+        // Remove proformas antigas do mesmo produto se este agora é finalizado
         updatedInvoices = updatedInvoices.filter(inv => inv.productTimestamp !== formData.productTimestamp || inv.isFinal || inv.timestamp === editingInvoice.timestamp);
       }
     } else {
+      const docNumber = getNextDocumentNumber(formData.isFinal, invoices);
       const newInvoice: Invoice = {
-        id: invoices.length + 1,
-        invoiceNumber: invoices.length + 1,
+        id: Date.now(),
+        invoiceNumber: docNumber,
         ...formData,
         productDetails: product || {},
         adjustedPrice: commercialSummary.totalToPay,
@@ -156,9 +171,16 @@ const BillingSystem: React.FC = () => {
 
   const finalizeProforma = () => {
     if (!proformaToFinalize) return;
-    const updatedInvoices = invoices.map(inv => inv.timestamp === proformaToFinalize.timestamp ? { ...inv, isFinal: true } : inv)
-      .filter(inv => inv.productTimestamp !== proformaToFinalize.productTimestamp || inv.isFinal || inv.timestamp === proformaToFinalize.timestamp);
+    const nextFinalNum = getNextDocumentNumber(true, invoices);
+    
+    const updatedInvoices = invoices.map(inv => 
+      inv.timestamp === proformaToFinalize.timestamp 
+      ? { ...inv, isFinal: true, invoiceNumber: nextFinalNum } 
+      : inv
+    ).filter(inv => inv.productTimestamp !== proformaToFinalize.productTimestamp || inv.isFinal);
+    
     const updatedInventory = inventory.map(p => p.timestamp === proformaToFinalize.productTimestamp ? { ...p, isSold: true } : p);
+    
     setInvoices(updatedInvoices);
     setInventory(updatedInventory);
     localStorage.setItem(BILL_KEY, JSON.stringify(updatedInvoices));
@@ -185,25 +207,16 @@ const BillingSystem: React.FC = () => {
   const handleDelete = (inv: Invoice) => {
     if (confirm(`AVISO DE EXCLUSÃO: Tem a certeza que deseja eliminar permanentemente o documento #${inv.invoiceNumber}?`)) {
       const updatedInvoices = invoices.filter(i => i.timestamp !== inv.timestamp);
-      
-      let wasFinal = inv.isFinal;
-      if (wasFinal) {
-        const currentInventory = JSON.parse(localStorage.getItem(INV_KEY) || '[]');
-        const updatedInventory = currentInventory.map((p: InventoryItem) => 
-          p.timestamp === inv.productTimestamp ? { ...p, isSold: false } : p
-        );
+      if (inv.isFinal) {
+        const updatedInventory = inventory.map(p => p.timestamp === inv.productTimestamp ? { ...p, isSold: false } : p);
         setInventory(updatedInventory);
         localStorage.setItem(INV_KEY, JSON.stringify(updatedInventory));
       }
-      
       setInvoices(updatedInvoices);
       localStorage.setItem(BILL_KEY, JSON.stringify(updatedInvoices));
-      alert(`SISTEMA: O documento #${inv.invoiceNumber} foi excluído dos dados.`);
       window.dispatchEvent(new Event('storage'));
     }
   };
-
-  const handlePrint = () => { window.print(); };
 
   const formatAOA = (val: number) => new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(val);
 
@@ -243,7 +256,7 @@ const BillingSystem: React.FC = () => {
           }} className="space-y-8 animate-fadeIn print:hidden">
             {editingInvoice && (
               <div className="flex justify-between items-center bg-amber-50 p-4 rounded-2xl border border-amber-100">
-                <p className="text-xs font-black text-amber-600 uppercase tracking-widest flex items-center gap-2"><Edit2 className="w-4 h-4" /> Editando #{editingInvoice.invoiceNumber}</p>
+                <p className="text-xs font-black text-amber-600 uppercase tracking-widest flex items-center gap-2"><Edit2 className="w-4 h-4" /> Editando: {editingInvoice.isFinal ? 'Factura' : 'Proforma'} #{editingInvoice.invoiceNumber}</p>
                 <button type="button" onClick={() => { setEditingInvoice(null); setFormData({ customerName: '', idNumber: '', phoneNumber: '', productTimestamp: 0, contractType: ContractType.ORDER, sellingPrice: 0, discount: 0, isFinal: false }); }} className="text-amber-600 hover:text-amber-800 flex items-center gap-1 text-[10px] font-bold uppercase"><X className="w-4 h-4" /> Cancelar</button>
               </div>
             )}
@@ -305,11 +318,19 @@ const BillingSystem: React.FC = () => {
             <div className="overflow-x-auto rounded-2xl border border-slate-100">
               <table className="w-full text-left">
                 <thead className="bg-slate-900 text-[10px] font-black uppercase text-slate-400">
-                  <tr><th className="p-4">Nº Doc</th><th className="p-4">Tipo</th><th className="p-4">Cliente / Tel</th><th className="p-4 text-right">Valor Total</th><th className="p-4 text-right">Ações</th></tr>
+                  <tr>
+                    <th className="p-4">Nº</th> {/* Número de Ordem Sequencial Dinâmico */}
+                    <th className="p-4">Nº Doc</th> {/* Número Fixo do Documento (Proforma/Final) */}
+                    <th className="p-4">Tipo</th>
+                    <th className="p-4">Cliente / Tel</th>
+                    <th className="p-4 text-right">Valor Total</th>
+                    <th className="p-4 text-right">Ações</th>
+                  </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {invoices.map(inv => (
+                  {invoices.map((inv, index) => (
                     <tr key={inv.timestamp} className="hover:bg-slate-50">
+                      <td className="p-4 font-black text-indigo-600 text-sm">{index + 1}</td>
                       <td className="p-4 font-bold text-sm">#{inv.invoiceNumber}</td>
                       <td className="p-4"><span className={`text-[9px] font-black px-2 py-1 rounded-full ${inv.isFinal ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-500'}`}>{inv.isFinal ? 'FINAL' : 'PROFORMA'}</span></td>
                       <td className="p-4"><div className="font-bold text-slate-900 text-sm">{inv.customerName}</div><div className="text-[10px] text-slate-400">{inv.phoneNumber}</div></td>
@@ -332,7 +353,7 @@ const BillingSystem: React.FC = () => {
       {selectedInvoice && (
         <div className="fixed inset-0 bg-white md:bg-slate-900/90 z-[1000] flex items-start justify-center overflow-y-auto p-0 md:p-10">
           <div className="absolute top-4 right-4 print:hidden z-[1001] flex gap-2">
-            <button onClick={handlePrint} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black shadow-xl flex items-center gap-2"><Printer className="w-5 h-5" /> IMPRIMIR PDF</button>
+            <button onClick={() => window.print()} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black shadow-xl flex items-center gap-2"><Printer className="w-5 h-5" /> IMPRIMIR PDF</button>
             <button onClick={() => setSelectedInvoice(null)} className="bg-red-600 text-white p-3 rounded-xl shadow-xl"><X className="w-6 h-6" /></button>
           </div>
           <div id="invoice-to-print" className="bg-white w-full max-w-4xl min-h-screen p-10 md:p-20 shadow-2xl print:shadow-none print:m-0 print:p-8">
@@ -392,9 +413,9 @@ const BillingSystem: React.FC = () => {
           <div className="bg-white w-full max-w-md rounded-3xl p-8 text-center shadow-2xl">
              <ShieldCheck className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
              <h3 className="text-xl font-black uppercase mb-2">Finalizar Venda?</h3>
-             <p className="text-slate-500 text-sm mb-6">Confirmar finalização e bloqueio do stock?</p>
+             <p className="text-slate-500 text-sm mb-6">Esta Proforma será convertida em Factura Final e o item será marcado como vendido no inventário.</p>
              <div className="flex flex-col gap-2">
-               <button onClick={finalizeProforma} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black">CONFIRMAR</button>
+               <button onClick={finalizeProforma} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black">CONFIRMAR E GERAR FACTURA</button>
                <button onClick={() => setProformaToFinalize(null)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold">CANCELAR</button>
              </div>
           </div>
@@ -406,6 +427,7 @@ const BillingSystem: React.FC = () => {
           <div className="bg-white w-full max-w-md rounded-3xl p-8 text-center shadow-2xl">
              <AlertCircle className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
              <h3 className="text-xl font-black uppercase mb-2">Confirmar Acção?</h3>
+             <p className="text-sm text-slate-500 mb-6">Deseja emitir este documento {formData.isFinal ? 'como Factura Final' : 'como Proforma'}?</p>
              <div className="flex flex-col gap-2">
                <button onClick={executeIssue} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black">CONFIRMAR</button>
                <button onClick={() => setShowConfirmIssue(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold">VOLTAR</button>

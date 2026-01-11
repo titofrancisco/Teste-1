@@ -52,7 +52,7 @@ export interface PaymentInstallment {
 
 export interface Invoice {
   id: number;
-  invoiceNumber: number;
+  invoiceNumber: number; // Número sequencial baseado no tipo (Proforma ou Final)
   customerName: string;
   idNumber: string;
   phoneNumber: string;
