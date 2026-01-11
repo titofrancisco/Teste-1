@@ -518,7 +518,7 @@ const BillingSystem: React.FC = () => {
                                   </button>
                                 )
                               ) : (
-                                <span className="text-[9px] font-bold text-slate-400 uppercase italic">Apenas Factura Final</span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase italic">Simulação Apenas</span>
                               )}
                            </div>
                         </div>

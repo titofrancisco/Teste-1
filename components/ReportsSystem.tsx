@@ -4,28 +4,22 @@ import { Invoice, InventoryItem, ContractType, PaymentReceipt } from '../types';
 import { 
   TrendingUp, 
   BarChart3, 
-  PieChart, 
   DollarSign, 
   Package, 
   ShoppingBag, 
   Printer, 
-  ArrowUpRight,
   History,
-  Info,
-  FileText,
   Download,
   Upload,
   Database,
-  Calendar,
   Filter,
   FileSpreadsheet,
   Clock,
-  ChevronDown,
-  ArrowDownCircle,
   AlertTriangle,
   CheckCircle2,
-  // Fix: Added missing ShieldCheck import
-  ShieldCheck
+  ShieldCheck,
+  CreditCard,
+  Wallet
 } from 'lucide-react';
 
 const ReportsSystem: React.FC = () => {
@@ -98,7 +92,6 @@ const ReportsSystem: React.FC = () => {
     const totalCostSold = finalInvoices.reduce((acc, curr) => acc + (curr.productDetails?.totalCost || 0), 0);
     const totalProfit = totalRevenue - totalCostSold;
     
-    // Novo cálculo: Valor Pago baseado nos recibos
     const totalPaid = receipts.reduce((acc, curr) => acc + curr.amount, 0);
     const totalDebt = Math.max(0, totalRevenue - totalPaid);
     
@@ -174,49 +167,55 @@ const ReportsSystem: React.FC = () => {
              <BarChart3 className="w-8 h-8" />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Gestão Executiva</h2>
+            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Relatório Executivo</h2>
             <p className="text-indigo-600 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3" /> Tech Import Angola • Auditoria Financeira
+              <ShieldCheck className="w-3 h-3" /> Tech Import Angola • Visão Financeira
             </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
           <button onClick={() => window.print()} className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-900 rounded-2xl font-black text-[10px] uppercase shadow-sm hover:shadow-md transition-all"><Printer className="w-4 h-4" /> PDF</button>
-          <button onClick={exportBackup} className="flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-lg"><Download className="w-4 h-4" /> Exportar Backup</button>
+          <button onClick={exportBackup} className="flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-lg"><Download className="w-4 h-4" /> Backup</button>
           <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-5 py-3 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-2xl font-black text-[10px] uppercase hover:bg-indigo-100 transition-all"><Upload className="w-4 h-4" /> Importar</button>
           <input type="file" ref={fileInputRef} onChange={importBackup} className="hidden" accept=".json" />
         </div>
       </div>
 
-      {/* Grid Principal de KPIs */}
+      {/* Grid Principal de KPIs Financeiros */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
-          <p className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-[0.2em]">Faturação Total (Avenças)</p>
-          <h3 className="text-4xl font-[1000] tracking-tighter mb-4">{formatAOA(stats.totalRevenue)}</h3>
-          <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full w-fit">
-            <TrendingUp className="w-3 h-3 text-emerald-400" />
-            <span className="text-[9px] font-black uppercase text-slate-300">Volume Total de Vendas</span>
+          <div className="relative z-10">
+            <p className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-[0.2em]">Faturação Bruta Total</p>
+            <h3 className="text-4xl font-[1000] tracking-tighter mb-4">{formatAOA(stats.totalRevenue)}</h3>
+            <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full w-fit">
+              <TrendingUp className="w-3 h-3 text-emerald-400" />
+              <span className="text-[9px] font-black uppercase text-slate-300">Valor de Venda Total</span>
+            </div>
           </div>
         </div>
 
         <div className="bg-emerald-600 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
-          <p className="text-[10px] font-black text-emerald-100 uppercase mb-2 tracking-[0.2em]">Valor Recebido (Liquidez)</p>
-          <h3 className="text-4xl font-[1000] tracking-tighter mb-4">{formatAOA(stats.totalPaid)}</h3>
-          <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full w-fit">
-            <CheckCircle2 className="w-3 h-3 text-white" />
-            <span className="text-[9px] font-black uppercase text-white">Total em Caixa</span>
+          <div className="relative z-10">
+            <p className="text-[10px] font-black text-emerald-100 uppercase mb-2 tracking-[0.2em]">Valor Pago (Liquidez)</p>
+            <h3 className="text-4xl font-[1000] tracking-tighter mb-4">{formatAOA(stats.totalPaid)}</h3>
+            <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full w-fit">
+              <Wallet className="w-3 h-3 text-white" />
+              <span className="text-[9px] font-black uppercase text-white">Receita Confirmada em Caixa</span>
+            </div>
           </div>
         </div>
 
-        <div className="bg-amber-500 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
+        <div className="bg-rose-500 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
-          <p className="text-[10px] font-black text-amber-100 uppercase mb-2 tracking-[0.2em]">Valor em Dívida (A receber)</p>
-          <h3 className="text-4xl font-[1000] tracking-tighter mb-4">{formatAOA(stats.totalDebt)}</h3>
-          <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full w-fit">
-            <AlertTriangle className="w-3 h-3 text-white" />
-            <span className="text-[9px] font-black uppercase text-white">Prestações Pendentes</span>
+          <div className="relative z-10">
+            <p className="text-[10px] font-black text-rose-100 uppercase mb-2 tracking-[0.2em]">Valor em Dívida (Pendente)</p>
+            <h3 className="text-4xl font-[1000] tracking-tighter mb-4">{formatAOA(stats.totalDebt)}</h3>
+            <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full w-fit">
+              <AlertTriangle className="w-3 h-3 text-white" />
+              <span className="text-[9px] font-black uppercase text-white">Faturação Não Liquidada</span>
+            </div>
           </div>
         </div>
       </div>
@@ -245,7 +244,7 @@ const ReportsSystem: React.FC = () => {
              <Package className="w-6 h-6" />
            </div>
            <div>
-             <p className="text-[10px] font-black text-slate-400 uppercase">Unidades no Inventário</p>
+             <p className="text-[10px] font-black text-slate-400 uppercase">Artigos Disponíveis</p>
              <h4 className="text-xl font-black text-emerald-600">{stats.itemsAvailable} Uni.</h4>
            </div>
         </div>
@@ -256,8 +255,8 @@ const ReportsSystem: React.FC = () => {
           <div className="flex items-center gap-3">
             <Filter className="w-6 h-6 text-indigo-600" />
             <div>
-              <h3 className="font-black text-sm uppercase">Filtragem de Dados</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Ajuste o período para análise específica</p>
+              <h3 className="font-black text-sm uppercase">Filtros de Auditoria</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Ajuste o período para análise</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-4">
@@ -265,16 +264,16 @@ const ReportsSystem: React.FC = () => {
                <button onClick={() => setFilterType('invoiceDate')} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${filterType === 'invoiceDate' ? 'bg-slate-900 text-white' : 'text-slate-400'}`}>Emissão</button>
                <button onClick={() => setFilterType('dueDate')} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${filterType === 'dueDate' ? 'bg-slate-900 text-white' : 'text-slate-400'}`}>Vencimento</button>
             </div>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-indigo-500" />
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-indigo-500" />
-            <button onClick={handleExportCSV} className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all"><FileSpreadsheet className="w-4 h-4" /> Exportar CSV</button>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-bold outline-none" />
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-bold outline-none" />
+            <button onClick={handleExportCSV} className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase hover:bg-emerald-700 transition-all"><FileSpreadsheet className="w-4 h-4" /> CSV</button>
           </div>
         </div>
 
         <div className="p-8 flex items-center justify-between border-b">
            <div className="flex items-center gap-3">
               <ShoppingBag className="w-6 h-6 text-rose-600" />
-              <h3 className="font-black text-sm uppercase tracking-widest">Listagem Geral de Facturação ({filteredSales.length})</h3>
+              <h3 className="font-black text-sm uppercase tracking-widest">Registos de Facturação ({filteredSales.length})</h3>
            </div>
         </div>
 
@@ -285,12 +284,13 @@ const ReportsSystem: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredSales.map(inv => {
-                const isFullyPaid = receipts.filter(r => r.invoiceTimestamp === inv.timestamp).reduce((acc, c) => acc + c.amount, 0) >= inv.adjustedPrice;
+                const totalPaidForInv = receipts.filter(r => r.invoiceTimestamp === inv.timestamp).reduce((acc, c) => acc + c.amount, 0);
+                const isFullyPaid = totalPaidForInv >= inv.adjustedPrice;
                 return (
                   <tr key={inv.timestamp} className="hover:bg-slate-50 transition-colors">
                     <td className="p-6"><div className="text-xs font-bold text-slate-900">#{inv.invoiceNumber}</div><div className="text-[9px] text-slate-400 uppercase">{inv.date}</div></td>
                     <td className="p-6 font-black text-slate-900 text-sm uppercase">{inv.customerName}</td>
-                    <td className="p-6"><div className="text-[10px] font-bold uppercase text-slate-700">{inv.productDetails?.brand} {inv.productDetails?.model}</div></td>
+                    <td className="p-6 text-[10px] font-bold uppercase text-slate-700">{inv.productDetails?.brand} {inv.productDetails?.model}</td>
                     <td className="p-6 text-right font-black text-slate-900">{formatAOA(inv.adjustedPrice)}</td>
                     <td className="p-6 text-center">
                        <span className={`text-[8px] font-black px-2 py-1 rounded-full ${isFullyPaid ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'}`}>
