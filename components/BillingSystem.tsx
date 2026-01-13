@@ -342,32 +342,32 @@ const BillingSystem: React.FC = () => {
             <button onClick={() => window.print()} className="bg-emerald-600 text-white p-3 md:px-6 md:py-3 rounded-xl font-black shadow-xl flex items-center gap-2"><Printer className="w-5 h-5" /><span className="hidden md:inline">IMPRIMIR</span></button>
             <button onClick={() => setSelectedInvoice(null)} className="bg-red-600 text-white p-3 rounded-xl shadow-xl"><X className="w-6 h-6" /></button>
           </div>
-          <div id="invoice-to-print" className="bg-white w-full max-w-4xl min-h-screen p-6 md:p-20 shadow-2xl print:shadow-none print:m-0 print:p-10">
-             <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-8 border-indigo-600 pb-6 md:pb-10 mb-6 md:mb-10 gap-4">
-               <div><h1 className="text-3xl md:text-4xl font-[1000] uppercase tracking-tighter text-indigo-600">TECHIMPORT</h1><p className="text-[10px] md:text-[12px] font-black text-slate-900 uppercase tracking-[0.5em] mt-1">ANGOLA</p></div>
+          <div id="invoice-to-print" className="bg-white w-full max-w-4xl min-h-screen p-6 md:p-20 shadow-2xl print:shadow-none print:m-0 print:p-0 print:w-full print:max-w-none print:min-h-0 print:h-auto">
+             <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-8 border-indigo-600 pb-6 md:pb-8 mb-6 md:mb-8 gap-4 print:pb-4 print:mb-4 print:border-b-4">
+               <div><h1 className="text-3xl md:text-4xl font-[1000] uppercase tracking-tighter text-indigo-600 print:text-2xl">TECHIMPORT</h1><p className="text-[10px] md:text-[12px] font-black text-slate-900 uppercase tracking-[0.5em] mt-1 print:text-[8px] print:tracking-[0.3em]">ANGOLA</p></div>
                <div className="text-left md:text-right">
-                 <h2 className={`text-2xl md:text-3xl font-black uppercase ${selectedInvoice.isFinal ? 'text-emerald-600' : 'text-slate-400'}`}>{selectedInvoice.isFinal ? 'Factura Final' : 'Proforma'}</h2>
-                 <p className="text-sm font-black uppercase">Nº DOC: {selectedInvoice.invoiceNumber}</p>
+                 <h2 className={`text-2xl md:text-3xl font-black uppercase ${selectedInvoice.isFinal ? 'text-emerald-600' : 'text-slate-400'} print:text-xl`}>{selectedInvoice.isFinal ? 'Factura Final' : 'Proforma'}</h2>
+                 <p className="text-sm font-black uppercase print:text-xs">Nº DOC: {selectedInvoice.invoiceNumber}</p>
                </div>
              </div>
              
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-20 mb-10">
-               <div><h4 className="text-[10px] font-black text-slate-400 uppercase border-b pb-1 mb-2">Cliente</h4><p className="text-lg md:text-xl font-black uppercase">{selectedInvoice.customerName}</p><p className="text-sm">BI: {selectedInvoice.idNumber}</p><p className="text-sm">Tel: {selectedInvoice.phoneNumber}</p></div>
-               <div className="text-left md:text-right"><h4 className="text-[10px] font-black text-slate-400 uppercase border-b pb-1 mb-2">Artigo</h4><p className="text-lg md:text-xl font-black uppercase">{selectedInvoice.productDetails?.brand} {selectedInvoice.productDetails?.model}</p><p className="text-sm uppercase">{selectedInvoice.productDetails?.storage} • {selectedInvoice.productDetails?.color}</p><p className="text-sm font-bold mt-2 text-indigo-600">Emissão: {selectedInvoice.date}</p></div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-20 mb-10 print:mb-6 print:gap-4 print:grid-cols-2">
+               <div><h4 className="text-[10px] font-black text-slate-400 uppercase border-b pb-1 mb-2 print:text-[8px] print:mb-1">Cliente</h4><p className="text-lg md:text-xl font-black uppercase print:text-sm">{selectedInvoice.customerName}</p><p className="text-sm print:text-xs">BI: {selectedInvoice.idNumber}</p><p className="text-sm print:text-xs">Tel: {selectedInvoice.phoneNumber}</p></div>
+               <div className="text-left md:text-right"><h4 className="text-[10px] font-black text-slate-400 uppercase border-b pb-1 mb-2 print:text-[8px] print:mb-1">Artigo</h4><p className="text-lg md:text-xl font-black uppercase print:text-sm">{selectedInvoice.productDetails?.brand} {selectedInvoice.productDetails?.model}</p><p className="text-sm uppercase print:text-xs">{selectedInvoice.productDetails?.storage} • {selectedInvoice.productDetails?.color}</p><p className="text-sm font-bold mt-2 text-indigo-600 print:text-xs">Emissão: {selectedInvoice.date}</p></div>
              </div>
 
              {selectedInvoice.installments && selectedInvoice.installments.length > 0 && (
-               <div className="mt-8 bg-slate-50 p-4 md:p-6 rounded-3xl border border-slate-200">
-                 <h4 className="text-[10px] font-black text-slate-900 uppercase mb-4 tracking-widest flex items-center gap-2"><Clock className="w-4 h-4" /> Plano de Prestações</h4>
-                 <div className="space-y-2">
+               <div className="mt-8 bg-slate-50 p-4 md:p-6 rounded-3xl border border-slate-200 print:mt-4 print:p-0 print:bg-white print:border-none">
+                 <h4 className="text-[10px] font-black text-slate-900 uppercase mb-4 tracking-widest flex items-center gap-2 print:text-[9px] print:mb-2"><Clock className="w-4 h-4 print:w-3 print:h-3" /> Plano de Prestações</h4>
+                 <div className="space-y-2 print:space-y-1">
                    {selectedInvoice.installments.map((inst) => (
-                     <div key={inst.number} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 gap-3">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] ${inst.status === 'Pago' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>{inst.status === 'Pago' ? <CheckCircle2 className="w-5 h-5" /> : inst.number}</div>
-                          <div><p className="text-[10px] font-black uppercase text-slate-900">{inst.label}</p><p className="text-[9px] text-slate-400 uppercase">Vencimento: {inst.dueDate}</p></div>
+                     <div key={inst.number} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 gap-3 print:p-2 print:border-slate-200 print:border-b print:rounded-none">
+                        <div className="flex items-center gap-4 print:gap-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] print:w-6 print:h-6 print:text-[8px] ${inst.status === 'Pago' ? 'bg-emerald-100 text-emerald-600 print:bg-transparent print:text-black' : 'bg-slate-100 text-slate-400 print:bg-transparent print:text-black'}`}>{inst.status === 'Pago' ? <CheckCircle2 className="w-5 h-5 print:w-4 print:h-4" /> : inst.number}</div>
+                          <div><p className="text-[10px] font-black uppercase text-slate-900 print:text-[9px]">{inst.label}</p><p className="text-[9px] text-slate-400 uppercase print:text-[8px]">Vencimento: {inst.dueDate}</p></div>
                         </div>
-                        <div className="text-right flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-                           <div><p className="text-sm font-black text-slate-900">{formatAOA(inst.amount)}</p><p className={`text-[8px] font-black uppercase ${inst.status === 'Pago' ? 'text-emerald-600' : 'text-amber-500'}`}>{inst.status === 'Pago' ? `Pago ${inst.paymentDate}` : 'Pendente'}</p></div>
+                        <div className="text-right flex items-center gap-6 w-full md:w-auto justify-between md:justify-end print:gap-2">
+                           <div><p className="text-sm font-black text-slate-900 print:text-xs">{formatAOA(inst.amount)}</p><p className={`text-[8px] font-black uppercase print:text-[7px] ${inst.status === 'Pago' ? 'text-emerald-600 print:text-black' : 'text-amber-500 print:text-black'}`}>{inst.status === 'Pago' ? `Pago ${inst.paymentDate}` : 'Pendente'}</p></div>
                            <div className="print:hidden">
                               {selectedInvoice.isFinal ? (inst.status === 'Pago' ? <span className="text-[10px] font-black text-emerald-600 uppercase flex items-center gap-1"><FileText className="w-3 h-3" /> OK</span> : <button onClick={() => confirmPayment(selectedInvoice.timestamp, inst.number)} className="bg-emerald-600 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-1"><FileCheck className="w-3.5 h-3.5" /> Pagar</button>) : <span className="text-[9px] font-bold text-slate-400 uppercase italic">Simulação</span>}
                            </div>
@@ -378,37 +378,36 @@ const BillingSystem: React.FC = () => {
                </div>
              )}
 
-             <div className="mt-10 pt-10 border-t-4 border-slate-900 flex justify-between items-end">
-               <div><p className="text-[10px] font-black uppercase text-slate-400">Total Líquido</p><p className="text-3xl md:text-4xl font-black">{formatAOA(selectedInvoice.adjustedPrice)}</p></div>
+             <div className="mt-10 pt-10 border-t-4 border-slate-900 flex justify-between items-end print:mt-6 print:pt-4 print:border-t-2">
+               <div><p className="text-[10px] font-black uppercase text-slate-400 print:text-[8px]">Total Líquido</p><p className="text-3xl md:text-4xl font-black print:text-2xl">{formatAOA(selectedInvoice.adjustedPrice)}</p></div>
              </div>
-             <div className="mt-20 md:mt-32 grid grid-cols-2 gap-10 md:gap-40 text-center">
-               <div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-[10px] md:text-xs">Assinatura Cliente</div>
-               <div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-[10px] md:text-xs">Tech Import Angola</div>
+             <div className="mt-20 md:mt-32 grid grid-cols-2 gap-10 md:gap-40 text-center print:mt-12 print:gap-10">
+               <div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-[10px] md:text-xs print:text-[9px] print:pt-2">Assinatura Cliente</div>
+               <div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-[10px] md:text-xs print:text-[9px] print:pt-2">Tech Import Angola</div>
              </div>
           </div>
         </div>
       )}
       
-      {/* Recibo e Modais Simplificados para poupar espaço... Mantendo lógica similar ao Invoice */}
       {selectedReceipt && (
         <div className="fixed inset-0 bg-white md:bg-slate-900/90 z-[1000] flex items-start justify-center overflow-y-auto p-0 md:p-10">
           <div className="absolute top-4 right-4 print:hidden z-[1001] flex gap-2">
             <button onClick={() => window.print()} className="bg-emerald-600 text-white p-3 rounded-xl shadow-xl"><Printer className="w-5 h-5" /></button>
             <button onClick={() => setSelectedReceipt(null)} className="bg-red-600 text-white p-3 rounded-xl shadow-xl"><X className="w-6 h-6" /></button>
           </div>
-          <div id="invoice-to-print" className="bg-white w-full max-w-4xl min-h-screen p-6 md:p-20 shadow-2xl print:shadow-none print:m-0 print:p-10">
-             <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-8 border-indigo-600 pb-6 mb-6 gap-4">
-               <div><h1 className="text-3xl md:text-4xl font-[1000] uppercase text-indigo-600">TECHIMPORT</h1></div>
-               <div className="text-left md:text-right"><h2 className="text-2xl font-black uppercase text-indigo-600">Recibo</h2><p className="text-sm font-black uppercase">Nº: {selectedReceipt.receiptNumber}</p></div>
+          <div id="invoice-to-print" className="bg-white w-full max-w-4xl min-h-screen p-6 md:p-20 shadow-2xl print:shadow-none print:m-0 print:p-0 print:w-full print:max-w-none print:min-h-0 print:h-auto">
+             <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-8 border-indigo-600 pb-6 mb-6 gap-4 print:pb-4 print:mb-4 print:border-b-4">
+               <div><h1 className="text-3xl md:text-4xl font-[1000] uppercase text-indigo-600 print:text-2xl">TECHIMPORT</h1></div>
+               <div className="text-left md:text-right"><h2 className="text-2xl font-black uppercase text-indigo-600 print:text-xl">Recibo</h2><p className="text-sm font-black uppercase print:text-xs">Nº: {selectedReceipt.receiptNumber}</p></div>
              </div>
-             <div className="bg-slate-50 p-6 md:p-10 rounded-3xl border border-slate-200 mb-10 text-sm md:text-lg">
-                <p>Recebemos de <strong className="uppercase">{selectedReceipt.customerName}</strong> a quantia de <strong className="text-indigo-600">{formatAOA(selectedReceipt.amount)}</strong> referente à {selectedReceipt.installmentLabel} do artigo {selectedReceipt.productInfo}.</p>
+             <div className="bg-slate-50 p-6 md:p-10 rounded-3xl border border-slate-200 mb-10 text-sm md:text-lg print:p-0 print:bg-white print:border-none print:text-sm print:mb-6">
+                <p>Recebemos de <strong className="uppercase">{selectedReceipt.customerName}</strong> a quantia de <strong className="text-indigo-600 print:text-black">{formatAOA(selectedReceipt.amount)}</strong> referente à {selectedReceipt.installmentLabel} do artigo {selectedReceipt.productInfo}.</p>
              </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-               <div className="p-6 bg-slate-50 rounded-3xl"><p className="text-[10px] font-black text-slate-400 uppercase mb-2">Data</p><p className="text-xl font-black">{selectedReceipt.date}</p></div>
-               <div className="p-6 bg-indigo-600 rounded-3xl text-white"><p className="text-[10px] font-black text-indigo-200 uppercase mb-2">Valor</p><p className="text-3xl font-[1000]">{formatAOA(selectedReceipt.amount)}</p></div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10 print:mt-4 print:gap-4 print:grid-cols-2">
+               <div className="p-6 bg-slate-50 rounded-3xl print:p-4 print:border print:border-slate-200 print:rounded-xl"><p className="text-[10px] font-black text-slate-400 uppercase mb-2 print:text-[8px]">Data</p><p className="text-xl font-black print:text-base">{selectedReceipt.date}</p></div>
+               <div className="p-6 bg-indigo-600 rounded-3xl text-white print:p-4 print:bg-white print:text-black print:border print:border-black print:rounded-xl"><p className="text-[10px] font-black text-indigo-200 uppercase mb-2 print:text-black print:text-[8px]">Valor</p><p className="text-3xl font-[1000] print:text-xl">{formatAOA(selectedReceipt.amount)}</p></div>
              </div>
-             <div className="mt-20 grid grid-cols-2 gap-10 md:gap-40 text-center"><div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-[10px]">Cliente</div><div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-[10px]">Tesouraria</div></div>
+             <div className="mt-20 grid grid-cols-2 gap-10 md:gap-40 text-center print:mt-12 print:gap-10"><div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-[10px] print:text-[9px] print:pt-2">Cliente</div><div className="border-t-2 border-slate-900 pt-4 font-black uppercase text-[10px] print:text-[9px] print:pt-2">Tesouraria</div></div>
           </div>
         </div>
       )}
@@ -435,13 +434,42 @@ const BillingSystem: React.FC = () => {
       )}
 
       <style>{`
-        @page { size: A4; margin: 0; }
+        @page { 
+          size: A4 portrait; 
+          margin: 0; 
+        }
         @media print {
-          html, body { width: 210mm; height: 297mm; background: #fff !important; margin: 0 !important; padding: 0 !important; overflow: hidden; }
-          body * { visibility: hidden !important; }
-          #invoice-to-print, #invoice-to-print * { visibility: visible !important; }
-          #invoice-to-print { position: fixed !important; left: 0 !important; top: 0 !important; width: 210mm !important; min-height: 297mm !important; margin: 0 !important; padding: 20mm !important; border: none !important; box-shadow: none !important; z-index: 9999 !important; background: white !important; }
-          .print\:hidden { display: none !important; }
+          html, body { 
+            width: 210mm; 
+            height: 297mm; 
+            background: #fff !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            overflow: hidden; 
+          }
+          body * { 
+            visibility: hidden !important; 
+          }
+          #invoice-to-print, #invoice-to-print * { 
+            visibility: visible !important; 
+          }
+          #invoice-to-print { 
+            position: absolute !important; 
+            left: 0 !important; 
+            top: 0 !important; 
+            width: 210mm !important; 
+            height: 296mm !important; /* Ligeiramente menor que 297mm para evitar página extra em alguns browsers */
+            margin: 0 !important; 
+            padding: 15mm !important; 
+            border: none !important; 
+            box-shadow: none !important; 
+            z-index: 9999 !important; 
+            background: white !important;
+            transform-origin: top left;
+          }
+          .print\:hidden { 
+            display: none !important; 
+          }
         }
       `}</style>
     </div>

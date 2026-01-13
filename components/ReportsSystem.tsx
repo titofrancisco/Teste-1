@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Invoice, InventoryItem, ContractType, PaymentReceipt } from '../types';
-import { TrendingUp, BarChart3, Package, ShoppingBag, Printer, History, Download, Upload, Database, Filter, FileSpreadsheet, AlertTriangle, ShieldCheck, Wallet } from 'lucide-react';
+import { TrendingUp, BarChart3, Package, ShoppingBag, Printer, History, Download, Upload, Database, Filter, FileSpreadsheet, AlertTriangle, ShieldCheck, Wallet, FileText, Check } from 'lucide-react';
 
 const ReportsSystem: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -73,6 +73,27 @@ const ReportsSystem: React.FC = () => {
     const itemsAvailable = inventory.filter(i => !i.isSold).length;
     return { totalRevenue, totalProfit, totalPaid, totalDebt, stockValue, itemsAvailable };
   }, [invoices, inventory, receipts]);
+
+  const contractStats = useMemo(() => {
+    const data = {
+      [ContractType.ORDER]: { count: 0, total: 0 },
+      [ContractType.TWO_INSTALLMENTS]: { count: 0, total: 0 },
+      [ContractType.THREE_INSTALLMENTS]: { count: 0, total: 0 }
+    };
+    
+    filteredSales.forEach(inv => {
+       if (data[inv.contractType]) {
+         data[inv.contractType].count += 1;
+         data[inv.contractType].total += inv.adjustedPrice;
+       }
+    });
+
+    return Object.entries(data).map(([key, val]) => ({
+      type: key,
+      ...val,
+      average: val.count > 0 ? val.total / val.count : 0
+    }));
+  }, [filteredSales]);
 
   const formatAOA = (val: number) => new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA', maximumFractionDigits: 0 }).format(val);
 
@@ -160,6 +181,34 @@ const ReportsSystem: React.FC = () => {
         <div className="bg-white p-5 md:p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4"><div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600"><ShoppingBag className="w-5 h-5 md:w-6 md:h-6" /></div><div><p className="text-[9px] font-black text-slate-400 uppercase">Lucro Est.</p><h4 className="text-lg md:text-xl font-black text-indigo-600">{formatAOA(stats.totalProfit)}</h4></div></div>
         <div className="bg-white p-5 md:p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4"><div className="w-10 h-10 md:w-12 md:h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-600"><Database className="w-5 h-5 md:w-6 md:h-6" /></div><div><p className="text-[9px] font-black text-slate-400 uppercase">Investido</p><h4 className="text-lg md:text-xl font-black text-slate-900">{formatAOA(stats.stockValue)}</h4></div></div>
         <div className="bg-white p-5 md:p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4"><div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600"><Package className="w-5 h-5 md:w-6 md:h-6" /></div><div><p className="text-[9px] font-black text-slate-400 uppercase">Disponível</p><h4 className="text-lg md:text-xl font-black text-emerald-600">{stats.itemsAvailable} Uni.</h4></div></div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="font-black text-sm uppercase flex items-center gap-2 text-slate-400"><FileText className="w-4 h-4" /> Análise de Contratos</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {contractStats.map((stat, idx) => (
+            <div key={idx} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
+               <div className={`absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl -mr-12 -mt-12 opacity-50 ${idx === 0 ? 'bg-indigo-200' : idx === 1 ? 'bg-amber-200' : 'bg-purple-200'}`}></div>
+               <div className="relative z-10">
+                 <p className="text-[9px] font-black uppercase text-slate-400 mb-1">{stat.type}</p>
+                 <div className="flex items-baseline gap-2 mb-3">
+                    <span className="text-3xl font-[1000] text-slate-900">{stat.count}</span>
+                    <span className="text-[10px] font-bold text-slate-400">contratos</span>
+                 </div>
+                 <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-bold text-slate-600">
+                      <span>Total</span>
+                      <span>{formatAOA(stat.total)}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                      <span>Média</span>
+                      <span>{formatAOA(stat.average)}</span>
+                    </div>
+                 </div>
+               </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden">
