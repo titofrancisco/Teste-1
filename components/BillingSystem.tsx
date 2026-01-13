@@ -337,13 +337,13 @@ const BillingSystem: React.FC = () => {
       </div>
 
       {selectedInvoice && (
-        <div id="invoice-modal-container" className="fixed inset-0 bg-white md:bg-slate-900/90 z-[1000] flex items-start justify-center overflow-y-auto p-0 md:p-10">
+        <div className="fixed inset-0 z-[1000] flex justify-center bg-white md:bg-slate-900/90 overflow-auto">
           <div className="absolute top-4 right-4 print:hidden z-[1001] flex gap-2">
             <button onClick={() => window.print()} className="bg-emerald-600 text-white p-3 md:px-6 md:py-3 rounded-xl font-black shadow-xl flex items-center gap-2"><Printer className="w-5 h-5" /><span className="hidden md:inline">IMPRIMIR</span></button>
             <button onClick={() => setSelectedInvoice(null)} className="bg-red-600 text-white p-3 rounded-xl shadow-xl"><X className="w-6 h-6" /></button>
           </div>
           
-          <div id="invoice-to-print" className="bg-white w-full max-w-4xl min-h-[500px] h-auto p-6 md:p-20 shadow-2xl print:shadow-none print:m-0 print:p-0 print:w-full print:h-auto">
+          <div id="invoice-to-print" className="bg-white p-10 md:p-20 shadow-2xl print:shadow-none w-full max-w-4xl mx-auto h-auto min-h-screen">
              <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-4 border-indigo-600 pb-4 mb-4 gap-4">
                <div><h1 className="text-3xl md:text-4xl font-[1000] uppercase tracking-tighter text-indigo-600">TECHIMPORT</h1><p className="text-[10px] md:text-[12px] font-black text-slate-900 uppercase tracking-[0.5em] mt-1">ANGOLA</p></div>
                <div className="text-left md:text-right">
@@ -402,12 +402,12 @@ const BillingSystem: React.FC = () => {
       )}
       
       {selectedReceipt && (
-        <div id="receipt-modal-container" className="fixed inset-0 bg-white md:bg-slate-900/90 z-[1000] flex items-start justify-center overflow-y-auto p-0 md:p-10">
+        <div className="fixed inset-0 z-[1000] flex justify-center bg-white md:bg-slate-900/90 overflow-auto">
           <div className="absolute top-4 right-4 print:hidden z-[1001] flex gap-2">
             <button onClick={() => window.print()} className="bg-emerald-600 text-white p-3 rounded-xl shadow-xl"><Printer className="w-5 h-5" /></button>
             <button onClick={() => setSelectedReceipt(null)} className="bg-red-600 text-white p-3 rounded-xl shadow-xl"><X className="w-6 h-6" /></button>
           </div>
-          <div id="invoice-to-print" className="bg-white w-full max-w-4xl min-h-[400px] h-auto p-6 md:p-20 shadow-2xl print:shadow-none print:m-0 print:p-0 print:w-full print:h-auto">
+          <div id="invoice-to-print" className="bg-white p-10 md:p-20 shadow-2xl print:shadow-none w-full max-w-4xl mx-auto h-auto min-h-screen">
              <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-4 border-indigo-600 pb-4 mb-6 gap-4">
                <div><h1 className="text-3xl font-[1000] uppercase text-indigo-600">TECHIMPORT</h1></div>
                <div className="text-left md:text-right"><h2 className="text-2xl font-black uppercase text-indigo-600">Recibo</h2><p className="text-sm font-black uppercase">Nº: {selectedReceipt.receiptNumber}</p></div>
@@ -446,39 +446,50 @@ const BillingSystem: React.FC = () => {
       )}
 
       <style>{`
+        @page {
+            size: A4;
+            margin: 0;
+        }
         @media print {
-            body {
+            html, body {
+                width: 210mm;
+                height: 297mm;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                background: white;
+            }
+            body * {
                 visibility: hidden;
-                overflow: visible !important;
-                height: auto !important;
-                background: white !important;
-                margin: 0 !important;
-                padding: 0 !important;
             }
             #invoice-to-print {
-                visibility: visible !important;
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
-                min-width: 100% !important;
-                margin: 0 !important;
-                padding: 20px !important;
-                background: white !important;
+                visibility: visible;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 210mm;
+                min-height: 297mm;
+                margin: 0;
+                padding: 20mm;
+                background: white;
                 z-index: 99999;
-                font-size: 14px; /* Aumentado para melhor leitura em mobile */
+                font-size: 14px; /* Tamanho de fonte fixo para A4 */
+                color: black;
             }
             #invoice-to-print * {
-                visibility: visible !important;
+                visibility: visible;
             }
-            /* Garantir que nada corta o fluxo */
+            
+            /* Remove estilos que causam problemas no mobile */
+            .fixed { position: absolute !important; }
             .min-h-screen { min-height: 0 !important; }
             .h-auto { height: auto !important; }
+            .shadow-2xl, .shadow-xl { box-shadow: none !important; }
             
             /* Esconder botões e elementos de UI */
             .print\:hidden { display: none !important; }
             
-            /* Tabela e Layout */
+            /* Forçar layout grid */
             .grid { display: grid !important; }
         }
       `}</style>
