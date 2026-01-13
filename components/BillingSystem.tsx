@@ -361,7 +361,6 @@ const BillingSystem: React.FC = () => {
                <div className="mt-4">
                  <h4 className="text-[10px] font-black text-slate-900 uppercase mb-2 tracking-widest border-b border-slate-100 pb-1">Plano de Pagamento</h4>
                  <div className="space-y-0">
-                    {/* Cabeçalho da tabela compacta para impressão */}
                     <div className="grid grid-cols-4 gap-2 text-[9px] font-black uppercase text-slate-400 pb-1 pl-2">
                         <span>Prestação</span>
                         <span>Vencimento</span>
@@ -369,7 +368,7 @@ const BillingSystem: React.FC = () => {
                         <span className="text-right">Status</span>
                     </div>
                    {selectedInvoice.installments.map((inst) => (
-                     <div key={inst.number} className="grid grid-cols-4 gap-2 py-2 border-t border-slate-50 items-center text-xs pl-2">
+                     <div key={inst.number} className="grid grid-cols-4 gap-2 py-3 border-t border-slate-50 items-center text-xs pl-2">
                         <div className="font-bold text-slate-900 flex items-center gap-2">
                             <span className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px]">{inst.number}</span>
                             {inst.label}
@@ -394,7 +393,6 @@ const BillingSystem: React.FC = () => {
                <div><p className="text-[10px] font-black uppercase text-slate-400">Total Líquido</p><p className="text-3xl font-black">{formatAOA(selectedInvoice.adjustedPrice)}</p></div>
              </div>
              
-             {/* Assinaturas ajustadas para não saltar de página */}
              <div className="mt-10 grid grid-cols-2 gap-20 text-center">
                <div className="border-t border-slate-300 pt-2 font-black uppercase text-[10px]">Assinatura Cliente</div>
                <div className="border-t border-slate-300 pt-2 font-black uppercase text-[10px]">Tech Import Angola</div>
@@ -454,20 +452,21 @@ const BillingSystem: React.FC = () => {
                 overflow: visible !important;
                 height: auto !important;
                 background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             #invoice-to-print {
                 visibility: visible !important;
-                position: fixed !important;
+                position: absolute !important;
                 left: 0 !important;
                 top: 0 !important;
                 width: 100% !important;
-                height: auto !important;
+                min-width: 100% !important;
                 margin: 0 !important;
-                padding: 15mm !important;
+                padding: 20px !important;
                 background: white !important;
                 z-index: 99999;
-                font-size: 11px; /* Fonte base reduzida para garantir encaixe */
-                display: block !important;
+                font-size: 14px; /* Aumentado para melhor leitura em mobile */
             }
             #invoice-to-print * {
                 visibility: visible !important;
@@ -478,6 +477,9 @@ const BillingSystem: React.FC = () => {
             
             /* Esconder botões e elementos de UI */
             .print\:hidden { display: none !important; }
+            
+            /* Tabela e Layout */
+            .grid { display: grid !important; }
         }
       `}</style>
     </div>

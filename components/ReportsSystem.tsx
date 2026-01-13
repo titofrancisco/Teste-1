@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Invoice, InventoryItem, ContractType, PaymentReceipt } from '../types';
-import { TrendingUp, BarChart3, Package, ShoppingBag, Printer, History, Download, Upload, Database, Filter, FileSpreadsheet, AlertTriangle, ShieldCheck, Wallet, FileText, Check } from 'lucide-react';
+import { TrendingUp, BarChart3, Package, ShoppingBag, Printer, History, Download, Upload, Database, Filter, FileSpreadsheet, AlertTriangle, ShieldCheck, Wallet, FileText, Check, FileCheck } from 'lucide-react';
 
 const ReportsSystem: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -64,6 +64,7 @@ const ReportsSystem: React.FC = () => {
 
   const stats = useMemo(() => {
     const finalInvoices = invoices.filter(i => i.isFinal);
+    const finalInvoicesCount = finalInvoices.length;
     const totalRevenue = finalInvoices.reduce((acc, curr) => acc + curr.adjustedPrice, 0);
     const totalCostSold = finalInvoices.reduce((acc, curr) => acc + (curr.productDetails?.totalCost || 0), 0);
     const totalProfit = totalRevenue - totalCostSold;
@@ -71,7 +72,7 @@ const ReportsSystem: React.FC = () => {
     const totalDebt = Math.max(0, totalRevenue - totalPaid);
     const stockValue = inventory.filter(i => !i.isSold).reduce((acc, curr) => acc + curr.totalCost, 0);
     const itemsAvailable = inventory.filter(i => !i.isSold).length;
-    return { totalRevenue, totalProfit, totalPaid, totalDebt, stockValue, itemsAvailable };
+    return { finalInvoicesCount, totalRevenue, totalProfit, totalPaid, totalDebt, stockValue, itemsAvailable };
   }, [invoices, inventory, receipts]);
 
   const contractStats = useMemo(() => {
@@ -175,6 +176,34 @@ const ReportsSystem: React.FC = () => {
             <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full w-fit"><AlertTriangle className="w-3 h-3 text-white" /><span className="text-[9px] font-black uppercase text-white">A Receber</span></div>
           </div>
         </div>
+      </div>
+
+      {/* Novo Bloco: Resumo Geral de Vendas Consolidado */}
+      <div className="bg-gradient-to-br from-indigo-50 to-slate-50 p-6 md:p-8 rounded-[2rem] border border-indigo-100/50 shadow-inner">
+         <h3 className="font-black text-sm uppercase flex items-center gap-2 text-indigo-900 mb-6"><FileCheck className="w-5 h-5 text-indigo-600" /> Resumo Geral de Vendas</h3>
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
+             <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+                 <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-black"><FileText className="w-6 h-6" /></div>
+                 <div>
+                     <p className="text-[10px] font-black uppercase text-slate-400">Total Faturas</p>
+                     <p className="text-2xl font-[1000] text-slate-900">{stats.finalInvoicesCount}</p>
+                 </div>
+             </div>
+             <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+                 <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 font-black"><Wallet className="w-6 h-6" /></div>
+                 <div>
+                     <p className="text-[10px] font-black uppercase text-slate-400">Total Pago</p>
+                     <p className="text-xl font-[1000] text-emerald-600">{formatAOA(stats.totalPaid)}</p>
+                 </div>
+             </div>
+             <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+                 <div className="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600 font-black"><AlertTriangle className="w-6 h-6" /></div>
+                 <div>
+                     <p className="text-[10px] font-black uppercase text-slate-400">Total em Dívida</p>
+                     <p className="text-xl font-[1000] text-rose-600">{formatAOA(stats.totalDebt)}</p>
+                 </div>
+             </div>
+         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
