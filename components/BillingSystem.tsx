@@ -337,13 +337,13 @@ const BillingSystem: React.FC = () => {
       </div>
 
       {selectedInvoice && (
-        <div className="fixed inset-0 z-[1000] flex justify-center bg-white md:bg-slate-900/90 overflow-auto">
+        <div id="invoice-modal-container" className="fixed inset-0 bg-white md:bg-slate-900/90 z-[1000] flex justify-center items-start overflow-auto p-0 md:p-10">
           <div className="absolute top-4 right-4 print:hidden z-[1001] flex gap-2">
             <button onClick={() => window.print()} className="bg-emerald-600 text-white p-3 md:px-6 md:py-3 rounded-xl font-black shadow-xl flex items-center gap-2"><Printer className="w-5 h-5" /><span className="hidden md:inline">IMPRIMIR</span></button>
             <button onClick={() => setSelectedInvoice(null)} className="bg-red-600 text-white p-3 rounded-xl shadow-xl"><X className="w-6 h-6" /></button>
           </div>
           
-          <div id="invoice-to-print" className="bg-white p-10 md:p-20 shadow-2xl print:shadow-none w-full max-w-4xl mx-auto h-auto min-h-screen">
+          <div id="invoice-to-print" className="bg-white p-8 md:p-16 shadow-2xl print:shadow-none w-full max-w-4xl mx-auto h-auto min-h-screen">
              <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-4 border-indigo-600 pb-4 mb-4 gap-4">
                <div><h1 className="text-3xl md:text-4xl font-[1000] uppercase tracking-tighter text-indigo-600">TECHIMPORT</h1><p className="text-[10px] md:text-[12px] font-black text-slate-900 uppercase tracking-[0.5em] mt-1">ANGOLA</p></div>
                <div className="text-left md:text-right">
@@ -402,72 +402,27 @@ const BillingSystem: React.FC = () => {
       )}
       
       {selectedReceipt && (
-        <div className="fixed inset-0 z-[1000] flex justify-center bg-white md:bg-slate-900/90 overflow-auto">
+        <div id="receipt-modal-container" className="fixed inset-0 bg-white md:bg-slate-900/90 z-[1000] flex justify-center items-start overflow-auto p-0 md:p-10">
           <div className="absolute top-4 right-4 print:hidden z-[1001] flex gap-2">
             <button onClick={() => window.print()} className="bg-emerald-600 text-white p-3 rounded-xl shadow-xl"><Printer className="w-5 h-5" /></button>
             <button onClick={() => setSelectedReceipt(null)} className="bg-red-600 text-white p-3 rounded-xl shadow-xl"><X className="w-6 h-6" /></button>
           </div>
-          <div id="invoice-to-print" className="bg-white p-10 md:p-20 shadow-2xl print:shadow-none w-full max-w-4xl mx-auto h-auto min-h-screen">
-             {/* Cabeçalho do Recibo */}
-             <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-4 border-indigo-600 pb-4 mb-8 gap-4">
-               <div>
-                  <h1 className="text-3xl font-[1000] uppercase text-indigo-600">TECHIMPORT</h1>
-                  <p className="text-[10px] font-black text-slate-900 uppercase tracking-[0.5em] mt-1">ANGOLA</p>
-               </div>
-               <div className="text-left md:text-right">
-                  <h2 className="text-2xl font-black uppercase text-indigo-600">Recibo</h2>
-                  <p className="text-sm font-black uppercase">Nº: {selectedReceipt.receiptNumber}</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Emissão: {selectedReceipt.date}</p>
-               </div>
+          <div id="invoice-to-print" className="bg-white p-8 md:p-16 shadow-2xl print:shadow-none w-full max-w-4xl mx-auto h-auto min-h-screen">
+             <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-4 border-indigo-600 pb-4 mb-6 gap-4">
+               <div><h1 className="text-3xl font-[1000] uppercase text-indigo-600">TECHIMPORT</h1><p className="text-[10px] font-black text-slate-900 uppercase tracking-[0.5em] mt-1">ANGOLA</p></div>
+               <div className="text-left md:text-right"><h2 className="text-2xl font-black uppercase text-indigo-600">Recibo</h2><p className="text-sm font-black uppercase">Nº: {selectedReceipt.receiptNumber}</p></div>
              </div>
              
-             {/* Dados Completos do Cliente */}
-             <div className="mb-8 border-b border-slate-100 pb-6">
-                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Dados do Cliente</h4>
-                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                    <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Nome Completo</p>
-                        <p className="font-black text-base md:text-lg uppercase text-slate-900">{selectedReceipt.customerName}</p>
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">NIF / B.I.</p>
-                        <p className="font-black text-base md:text-lg font-mono text-slate-900">{selectedReceipt.idNumber}</p>
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Telefone</p>
-                        <p className="font-black text-base md:text-lg text-slate-900">{selectedReceipt.phoneNumber}</p>
-                    </div>
-                 </div>
+             <div className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-200 mb-6 text-sm md:text-base print:bg-white print:border-none print:p-0">
+                <p className="leading-relaxed">Recebemos de <strong className="uppercase">{selectedReceipt.customerName}</strong> a quantia de <strong className="text-indigo-600 print:text-black">{formatAOA(selectedReceipt.amount)}</strong> referente à {selectedReceipt.installmentLabel} do artigo {selectedReceipt.productInfo}.</p>
              </div>
-
-             {/* Detalhes do Pagamento e Produto */}
-             <div className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-200 print:bg-white print:border print:border-slate-300">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Detalhes do Pagamento</h4>
-                
-                <div className="mb-6">
-                   <p className="text-sm md:text-base leading-relaxed text-slate-700">
-                      Certificamos que recebemos a quantia de <strong className="text-xl md:text-2xl text-indigo-600 print:text-black mx-1">{formatAOA(selectedReceipt.amount)}</strong>
-                   </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200">
-                   <div>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Referente a</p>
-                      <p className="font-bold uppercase text-slate-900 text-sm">{selectedReceipt.installmentLabel}</p>
-                      <p className="text-xs text-slate-500 font-medium mt-1">Factura Associada: <span className="font-bold text-slate-900">#{selectedReceipt.invoiceNumber}</span></p>
-                   </div>
-                   <div>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Produto / Serviço</p>
-                      <p className="font-black uppercase text-slate-900 text-sm">{selectedReceipt.productInfo}</p>
-                   </div>
-                </div>
+             
+             <div className="grid grid-cols-2 gap-6 mt-6">
+               <div className="p-4 bg-slate-50 rounded-2xl print:bg-transparent print:border print:border-slate-200"><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Data</p><p className="text-lg font-black">{selectedReceipt.date}</p></div>
+               <div className="p-4 bg-indigo-600 rounded-2xl text-white print:bg-transparent print:text-black print:border print:border-black"><p className="text-[10px] font-black text-indigo-200 uppercase mb-1 print:text-slate-400">Valor</p><p className="text-2xl font-[1000]">{formatAOA(selectedReceipt.amount)}</p></div>
              </div>
-
-             {/* Assinaturas */}
-             <div className="mt-16 grid grid-cols-2 gap-20 text-center">
-               <div className="border-t border-slate-900 pt-2 font-black uppercase text-[10px]">Assinatura Cliente</div>
-               <div className="border-t border-slate-900 pt-2 font-black uppercase text-[10px]">Tech Import Angola</div>
-             </div>
+             
+             <div className="mt-12 grid grid-cols-2 gap-20 text-center"><div className="border-t border-slate-900 pt-2 font-black uppercase text-[10px]">Cliente</div><div className="border-t border-slate-900 pt-2 font-black uppercase text-[10px]">Tesouraria</div></div>
           </div>
         </div>
       )}
@@ -494,51 +449,43 @@ const BillingSystem: React.FC = () => {
       )}
 
       <style>{`
-        @page {
-            size: A4;
-            margin: 0;
-        }
         @media print {
-            html, body {
-                width: 210mm;
-                height: 297mm;
-                margin: 0;
-                padding: 0;
-                overflow: hidden;
+            body {
+                visibility: hidden;
                 background: white;
             }
-            body * {
-                visibility: hidden;
+            #invoice-modal-container, #receipt-modal-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                background: white;
+                z-index: 9999;
             }
             #invoice-to-print {
                 visibility: visible;
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 210mm;
-                min-height: 297mm;
-                margin: 0;
-                padding: 20mm;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 10mm !important;
                 background: white;
-                z-index: 99999;
-                font-size: 14px; /* Tamanho de fonte fixo para A4 */
-                color: black;
+                box-shadow: none !important;
             }
             #invoice-to-print * {
                 visibility: visible;
             }
-            
-            /* Remove estilos que causam problemas no mobile */
-            .fixed { position: absolute !important; }
-            .min-h-screen { min-height: 0 !important; }
-            .h-auto { height: auto !important; }
-            .shadow-2xl, .shadow-xl { box-shadow: none !important; }
-            
-            /* Esconder botões e elementos de UI */
             .print\:hidden { display: none !important; }
-            
-            /* Forçar layout grid */
-            .grid { display: grid !important; }
+            .print\:bg-white { background: white !important; }
+            .print\:border-none { border: none !important; }
+            @page {
+                size: A4;
+                margin: 0;
+            }
         }
       `}</style>
     </div>
