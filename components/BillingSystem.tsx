@@ -408,18 +408,66 @@ const BillingSystem: React.FC = () => {
             <button onClick={() => setSelectedReceipt(null)} className="bg-red-600 text-white p-3 rounded-xl shadow-xl"><X className="w-6 h-6" /></button>
           </div>
           <div id="invoice-to-print" className="bg-white p-10 md:p-20 shadow-2xl print:shadow-none w-full max-w-4xl mx-auto h-auto min-h-screen">
-             <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-4 border-indigo-600 pb-4 mb-6 gap-4">
-               <div><h1 className="text-3xl font-[1000] uppercase text-indigo-600">TECHIMPORT</h1></div>
-               <div className="text-left md:text-right"><h2 className="text-2xl font-black uppercase text-indigo-600">Recibo</h2><p className="text-sm font-black uppercase">Nº: {selectedReceipt.receiptNumber}</p></div>
+             {/* Cabeçalho do Recibo */}
+             <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-4 border-indigo-600 pb-4 mb-8 gap-4">
+               <div>
+                  <h1 className="text-3xl font-[1000] uppercase text-indigo-600">TECHIMPORT</h1>
+                  <p className="text-[10px] font-black text-slate-900 uppercase tracking-[0.5em] mt-1">ANGOLA</p>
+               </div>
+               <div className="text-left md:text-right">
+                  <h2 className="text-2xl font-black uppercase text-indigo-600">Recibo</h2>
+                  <p className="text-sm font-black uppercase">Nº: {selectedReceipt.receiptNumber}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Emissão: {selectedReceipt.date}</p>
+               </div>
              </div>
-             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 mb-6 text-sm md:text-base print:bg-white print:border-none print:p-0">
-                <p className="leading-relaxed">Recebemos de <strong className="uppercase">{selectedReceipt.customerName}</strong> a quantia de <strong className="text-indigo-600 print:text-black">{formatAOA(selectedReceipt.amount)}</strong> referente à {selectedReceipt.installmentLabel} do artigo {selectedReceipt.productInfo}.</p>
+             
+             {/* Dados Completos do Cliente */}
+             <div className="mb-8 border-b border-slate-100 pb-6">
+                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Dados do Cliente</h4>
+                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                    <div>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Nome Completo</p>
+                        <p className="font-black text-base md:text-lg uppercase text-slate-900">{selectedReceipt.customerName}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">NIF / B.I.</p>
+                        <p className="font-black text-base md:text-lg font-mono text-slate-900">{selectedReceipt.idNumber}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Telefone</p>
+                        <p className="font-black text-base md:text-lg text-slate-900">{selectedReceipt.phoneNumber}</p>
+                    </div>
+                 </div>
              </div>
-             <div className="grid grid-cols-2 gap-6 mt-6">
-               <div className="p-4 bg-slate-50 rounded-2xl print:bg-transparent print:border print:border-slate-200"><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Data</p><p className="text-lg font-black">{selectedReceipt.date}</p></div>
-               <div className="p-4 bg-indigo-600 rounded-2xl text-white print:bg-transparent print:text-black print:border print:border-black"><p className="text-[10px] font-black text-indigo-200 uppercase mb-1 print:text-slate-400">Valor</p><p className="text-2xl font-[1000]">{formatAOA(selectedReceipt.amount)}</p></div>
+
+             {/* Detalhes do Pagamento e Produto */}
+             <div className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-200 print:bg-white print:border print:border-slate-300">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Detalhes do Pagamento</h4>
+                
+                <div className="mb-6">
+                   <p className="text-sm md:text-base leading-relaxed text-slate-700">
+                      Certificamos que recebemos a quantia de <strong className="text-xl md:text-2xl text-indigo-600 print:text-black mx-1">{formatAOA(selectedReceipt.amount)}</strong>
+                   </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200">
+                   <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Referente a</p>
+                      <p className="font-bold uppercase text-slate-900 text-sm">{selectedReceipt.installmentLabel}</p>
+                      <p className="text-xs text-slate-500 font-medium mt-1">Factura Associada: <span className="font-bold text-slate-900">#{selectedReceipt.invoiceNumber}</span></p>
+                   </div>
+                   <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Produto / Serviço</p>
+                      <p className="font-black uppercase text-slate-900 text-sm">{selectedReceipt.productInfo}</p>
+                   </div>
+                </div>
              </div>
-             <div className="mt-12 grid grid-cols-2 gap-20 text-center"><div className="border-t border-slate-900 pt-2 font-black uppercase text-[10px]">Cliente</div><div className="border-t border-slate-900 pt-2 font-black uppercase text-[10px]">Tesouraria</div></div>
+
+             {/* Assinaturas */}
+             <div className="mt-16 grid grid-cols-2 gap-20 text-center">
+               <div className="border-t border-slate-900 pt-2 font-black uppercase text-[10px]">Assinatura Cliente</div>
+               <div className="border-t border-slate-900 pt-2 font-black uppercase text-[10px]">Tech Import Angola</div>
+             </div>
           </div>
         </div>
       )}
