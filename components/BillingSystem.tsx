@@ -414,7 +414,9 @@ const BillingSystem: React.FC = () => {
              </div>
              
              <div className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-200 mb-6 text-sm md:text-base print:bg-white print:border-none print:p-0">
-                <p className="leading-relaxed">Recebemos de <strong className="uppercase">{selectedReceipt.customerName}</strong> a quantia de <strong className="text-indigo-600 print:text-black">{formatAOA(selectedReceipt.amount)}</strong> referente à {selectedReceipt.installmentLabel} do artigo {selectedReceipt.productInfo}.</p>
+                <p className="leading-relaxed">
+                  Recebemos de <strong className="uppercase">{selectedReceipt.customerName}</strong>, portador do B.I. <strong className="uppercase">{selectedReceipt.idNumber}</strong>, a quantia de <strong className="text-indigo-600 print:text-black">{formatAOA(selectedReceipt.amount)}</strong> referente ao pagamento <strong className="uppercase">{selectedReceipt.installmentLabel}</strong> do artigo <strong className="uppercase">{selectedReceipt.productInfo}</strong> detalhado na fatura nº <strong>{selectedReceipt.invoiceNumber}</strong>.
+                </p>
              </div>
              
              <div className="grid grid-cols-2 gap-6 mt-6">
